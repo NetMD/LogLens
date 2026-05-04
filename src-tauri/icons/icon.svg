@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="102" fill="#0f1117"/>
+  <circle cx="230" cy="200" r="98" fill="none" stroke="#6c63ff" stroke-width="20"/>
+  <circle cx="230" cy="200" r="78" fill="#161b2e"/>
+  <line x1="188" y1="180" x2="272" y2="180" stroke="#6c63ff" stroke-width="10" stroke-linecap="round"/>
+  <line x1="188" y1="200" x2="272" y2="200" stroke="#8b85ff" stroke-width="10" stroke-linecap="round"/>
+  <line x1="188" y1="220" x2="252" y2="220" stroke="#6c63ff" stroke-width="10" stroke-linecap="round" opacity="0.6"/>
+  <line x1="305" y1="275" x2="358" y2="328" stroke="#6c63ff" stroke-width="22" stroke-linecap="round"/>
+  <text x="256" y="430" text-anchor="middle"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="72" font-weight="700"
+    fill="#8b85ff" letter-spacing="2">LogLens</text>
+</svg>

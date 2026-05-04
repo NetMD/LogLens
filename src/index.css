@@ -1,0 +1,368 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"] *));
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* 로그 뷰어 폰트 CSS 변수 (기본값) */
+  --log-font-family: 'JetBrains Mono', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', monospace;
+  --log-font-size: 13px;
+}
+
+/* =============================================================================
+   COLOR SYSTEM — OKLCH 기반, hue 275 (slate-violet) 로 미세 틴트한 중성 팔레트
+   브랜드 액센트는 INFO 블루(hue 240)와 35° 떨어진 슬레이트-바이올렛.
+   로그 레벨 4색(error/warn/info/success)과 모두 충돌하지 않음.
+   순수 black/white 사용 안 함. 모든 면이 hue 275 로 살짝 틴트됨.
+   ============================================================================= */
+
+/* ===== 다크 테마 (기본) ===== */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* --- Foundation: 배경 (hue 275, chroma 0.01~0.04) --- */
+  --color-bg-base: oklch(14% 0.01 275);
+  --color-bg-surface: oklch(18% 0.01 275);
+  --color-bg-elevated: oklch(23% 0.012 275);
+  --color-bg-input: oklch(23% 0.012 275);
+  --color-bg-hover: oklch(26% 0.015 275);
+  --color-bg-active: oklch(32% 0.04 275);
+
+  /* --- Foundation: 텍스트 --- */
+  --color-text-primary: oklch(96% 0.005 275);
+  --color-text-secondary: oklch(82% 0.008 275);
+  --color-text-tertiary: oklch(58% 0.012 275);
+  --color-text-disabled: oklch(38% 0.012 275);
+  --color-text-placeholder: oklch(38% 0.012 275);
+
+  /* --- Foundation: 보더 --- */
+  --color-border-default: oklch(32% 0.014 275);
+  --color-border-subtle: oklch(22% 0.012 275);
+  --color-border-focus: oklch(72% 0.13 275);
+
+  /* --- Brand: 슬레이트-바이올렛 (Tailwind blue 탈출) --- */
+  --color-accent-primary: oklch(72% 0.13 275);
+  --color-accent-primary-hover: oklch(78% 0.14 275);
+  --color-accent-primary-subtle-bg: oklch(28% 0.06 275);
+  --color-accent-primary-subtle-fg: oklch(82% 0.10 275);
+  /* legacy aliases — 기존 코드 호환 (status 토큰으로 점진 이전 권장) */
+  --color-accent-success: oklch(78% 0.13 155);
+  --color-accent-warning: oklch(80% 0.13 80);
+  --color-accent-danger: oklch(78% 0.16 25);
+
+  /* --- Semantic: UI 상태 표시 (로그 레벨과 별개) ---
+     주의: 컴포넌트 상태 표시용. 로그 엔트리 자체에는 --color-level-* 사용. */
+  --color-status-error-fg: oklch(78% 0.16 25);
+  --color-status-error-bg: oklch(28% 0.07 25);
+  --color-status-error-border: oklch(40% 0.10 25);
+  --color-status-warn-fg: oklch(80% 0.13 80);
+  --color-status-warn-bg: oklch(28% 0.06 80);
+  --color-status-warn-border: oklch(40% 0.09 80);
+  --color-status-success-fg: oklch(78% 0.13 155);
+  --color-status-success-bg: oklch(26% 0.05 155);
+  --color-status-success-border: oklch(38% 0.08 155);
+  --color-status-info-fg: oklch(78% 0.12 230);
+  --color-status-info-bg: oklch(26% 0.05 230);
+  --color-status-info-border: oklch(38% 0.08 230);
+
+  /* --- Semantic: 버튼 ---
+     light 테마에서는 액센트가 어둡고 텍스트는 거의 흰색,
+     dark 테마에서는 액센트가 밝아 텍스트는 어두운 잉크가 적합. */
+  --color-button-primary-bg: var(--color-accent-primary);
+  --color-button-primary-bg-hover: var(--color-accent-primary-hover);
+  --color-button-primary-fg: oklch(15% 0.01 275);
+  --color-button-secondary-bg: transparent;
+  --color-button-secondary-bg-hover: var(--color-bg-hover);
+  --color-button-secondary-fg: var(--color-text-secondary);
+  --color-button-secondary-border: var(--color-border-default);
+  --color-button-danger-bg: oklch(58% 0.20 25);
+  --color-button-danger-bg-hover: oklch(64% 0.20 25);
+  --color-button-danger-fg: oklch(99% 0.005 25);
+  --color-button-ghost-fg: var(--color-text-secondary);
+  --color-button-ghost-bg-hover: var(--color-bg-hover);
+
+  /* --- 스크롤바 --- */
+  --color-scrollbar-track: var(--color-bg-surface);
+  --color-scrollbar-thumb: oklch(32% 0.014 275);
+  --color-scrollbar-thumb-hover: oklch(42% 0.018 275);
+
+  /* --- 오버레이 --- */
+  --color-overlay: oklch(0% 0 0 / 0.6);
+
+  /* --- 로그 레벨: SACRED. 로그 의미 전달 전용 ---
+     UI 어디에서도 장식·브랜드 용도로 재사용 금지. */
+  --color-level-error-bg: oklch(35% 0.10 25 / 0.4);
+  --color-level-error-border: oklch(35% 0.10 25 / 0.3);
+  --color-level-error-text: oklch(78% 0.14 25);
+  --color-level-warn-bg: oklch(40% 0.10 80 / 0.3);
+  --color-level-warn-border: oklch(40% 0.10 80 / 0.2);
+  --color-level-warn-text: oklch(82% 0.16 95);
+  --color-level-info-text: oklch(78% 0.12 230);
+  --color-level-debug-text: oklch(58% 0.012 275);
+  --color-level-trace-text: oklch(48% 0.012 275);
+}
+
+/* ===== 라이트 테마 ===== */
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* --- Foundation: 배경 (순수 white 금지, hue 275 미세 틴트) --- */
+  --color-bg-base: oklch(98.5% 0.004 275);
+  --color-bg-surface: oklch(99.5% 0.003 275);
+  --color-bg-elevated: oklch(96.5% 0.005 275);
+  --color-bg-input: oklch(99.5% 0.003 275);
+  --color-bg-hover: oklch(95.5% 0.008 275);
+  --color-bg-active: oklch(92% 0.04 275);
+
+  /* --- Foundation: 텍스트 --- */
+  --color-text-primary: oklch(22% 0.012 275);
+  --color-text-secondary: oklch(40% 0.012 275);
+  --color-text-tertiary: oklch(55% 0.012 275);
+  --color-text-disabled: oklch(72% 0.008 275);
+  --color-text-placeholder: oklch(72% 0.008 275);
+
+  /* --- Foundation: 보더 --- */
+  --color-border-default: oklch(90% 0.008 275);
+  --color-border-subtle: oklch(95% 0.005 275);
+  --color-border-focus: oklch(53% 0.14 275);
+
+  /* --- Brand: 슬레이트-바이올렛 --- */
+  --color-accent-primary: oklch(53% 0.14 275);
+  --color-accent-primary-hover: oklch(46% 0.15 275);
+  --color-accent-primary-subtle-bg: oklch(96% 0.025 275);
+  --color-accent-primary-subtle-fg: oklch(42% 0.14 275);
+  /* legacy aliases */
+  --color-accent-success: oklch(50% 0.14 155);
+  --color-accent-warning: oklch(58% 0.13 70);
+  --color-accent-danger: oklch(55% 0.20 25);
+
+  /* --- Semantic: UI 상태 --- */
+  --color-status-error-fg: oklch(48% 0.20 25);
+  --color-status-error-bg: oklch(96% 0.04 25);
+  --color-status-error-border: oklch(82% 0.10 25);
+  --color-status-warn-fg: oklch(48% 0.13 70);
+  --color-status-warn-bg: oklch(96% 0.05 80);
+  --color-status-warn-border: oklch(82% 0.10 75);
+  --color-status-success-fg: oklch(45% 0.14 155);
+  --color-status-success-bg: oklch(96% 0.04 155);
+  --color-status-success-border: oklch(82% 0.10 155);
+  --color-status-info-fg: oklch(45% 0.13 230);
+  --color-status-info-bg: oklch(96% 0.04 230);
+  --color-status-info-border: oklch(82% 0.10 230);
+
+  /* --- Semantic: 버튼 --- */
+  --color-button-primary-bg: var(--color-accent-primary);
+  --color-button-primary-bg-hover: var(--color-accent-primary-hover);
+  --color-button-primary-fg: oklch(99% 0.003 275);
+  --color-button-secondary-bg: transparent;
+  --color-button-secondary-bg-hover: var(--color-bg-hover);
+  --color-button-secondary-fg: var(--color-text-secondary);
+  --color-button-secondary-border: var(--color-border-default);
+  --color-button-danger-bg: oklch(55% 0.20 25);
+  --color-button-danger-bg-hover: oklch(48% 0.21 25);
+  --color-button-danger-fg: oklch(99% 0.005 25);
+  --color-button-ghost-fg: var(--color-text-secondary);
+  --color-button-ghost-bg-hover: var(--color-bg-hover);
+
+  /* --- 스크롤바 --- */
+  --color-scrollbar-track: oklch(95% 0.005 275);
+  --color-scrollbar-thumb: oklch(82% 0.008 275);
+  --color-scrollbar-thumb-hover: oklch(65% 0.01 275);
+
+  /* --- 오버레이 --- */
+  --color-overlay: oklch(20% 0.01 275 / 0.35);
+
+  /* --- 로그 레벨: SACRED --- */
+  --color-level-error-bg: oklch(96% 0.03 25);
+  --color-level-error-border: oklch(85% 0.08 25);
+  --color-level-error-text: oklch(48% 0.18 25);
+  --color-level-warn-bg: oklch(97% 0.04 90);
+  --color-level-warn-border: oklch(86% 0.10 85);
+  --color-level-warn-text: oklch(48% 0.14 75);
+  --color-level-info-text: oklch(45% 0.13 230);
+  --color-level-debug-text: oklch(55% 0.012 275);
+  --color-level-trace-text: oklch(65% 0.008 275);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* html / body / #root 모두 viewport 정확히 차지하도록 명시.
+   MainLayout 의 h-screen(100vh) 이 자식 자라남에 따라 viewport 밖으로 밀려나는 것을 방지.
+   특히 데모 배너 추가 시 ConversationalTab 의 ChatInput 이 화면 아래로 짤리던 문제 해결. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  overflow: hidden;
+}
+
+/* 로그 뷰어 전용 폰트 클래스 — CSS 변수 기반 font-family + font-size
+   CJK(한글/일본어/중국어) 문자는 모노스페이스 폰트에 글리프가 없어
+   fallback 시 폭 계산이 어긋날 수 있으므로 word-break 를 보장한다. */
+.log-viewer-font {
+  font-family: var(--log-font-family, 'JetBrains Mono', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', monospace) !important;
+  word-break: break-all;
+}
+
+/* 로그 뷰어 영역 내부의 모든 자식에 font-size 상속 강제 */
+.log-viewer-area,
+.log-viewer-area * {
+  font-size: var(--log-font-size, 13px) !important;
+}
+
+/* 스크롤바 스타일 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar-thumb);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-scrollbar-thumb-hover);
+}
+
+/* === ComparisonDetailModal — renderInline 인쇄용 인라인 스타일 다크 모드 오버라이드 === */
+.comparison-detail-prose code {
+  background: var(--color-bg-base) !important;
+  color: var(--color-text-primary) !important;
+}
+.comparison-detail-prose strong {
+  color: var(--color-text-primary) !important;
+}
+
+/* === 인쇄 전용 스타일 === */
+@media screen {
+  /* display:none 대신 offscreen 배치 — 브라우저가 레이아웃을 미리 계산하도록 한다.
+     display:none 이면 window.print() 시 WebKit 이 긴 콘텐츠 높이를 확정하기 전에
+     스냅샷을 찍어 하단이 잘리는 문제가 발생한다. */
+  .printable-report-wrapper {
+    position: fixed;
+    left: -9999px;
+    top: 0;
+    width: 210mm;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+@media print {
+  /* 앱 UI 전체 숨김 */
+  body > *:not(.printable-report-wrapper) {
+    display: none !important;
+  }
+
+  .printable-report-wrapper {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+    visibility: visible !important;
+    display: block !important;
+  }
+
+  .printable-report {
+    display: block;
+    background: white;
+    color: black;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+  }
+
+  /* AI 리포트: 헤딩 직후 페이지 분리 방지 */
+  .printable-report h1,
+  .printable-report h2,
+  .printable-report h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* 블록 요소: break-inside:avoid 는 WebKit 에서 페이지 경계 근처의
+     블록을 빈 박스로 남기는 버그가 있으므로 auto 로 설정하여
+     콘텐츠가 누락되지 않도록 한다. */
+  .printable-report blockquote,
+  .printable-report pre {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  /* 리스트: Tailwind reset 이 list-style:none 으로 초기화하므로 복원 */
+  .printable-report ul {
+    list-style-type: disc !important;
+  }
+  .printable-report ol {
+    list-style-type: decimal !important;
+  }
+
+  .printable-report table {
+    max-width: 100%;
+    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .printable-report code,
+  .printable-report .stacktrace-frame,
+  .printable-report .stacktrace-message,
+  .printable-report .stacktrace-exception {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  /* 스택트레이스 블록: 페이지 경계에서 잘림 방지 (max-height 제한 없음) */
+  .printable-report .stacktrace-block,
+  .printable-report .stacktrace-body {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* 차트 컨테이너: 인쇄 시 가로 폭 100% 강제 + SVG 비율 유지 */
+  .printable-report .chart-container {
+    width: 100% !important;
+    max-width: 100%;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .printable-report .chart-container svg {
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Top 예외 테이블: 고정 레이아웃 + 컬럼 너비 제어 */
+  .printable-report .top-errors-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .printable-report .top-errors-table th,
+  .printable-report .top-errors-table td {
+    padding: 6px 8px;
+  }
+
+  @page {
+    margin: 20mm;
+  }
+}

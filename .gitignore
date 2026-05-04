@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+src-tauri/target/
+src-tauri/gen/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# tauri-plugin-store data files (project root only — actual storage is in OS app data dir)
+/settings.json
+/history.json
+/diagnosis-history.json
+/ai-report-history.json
+
+# IDE
+.idea/
+
+# Local development context (not for public repo)
+.claude/
+.serena/
+.impeccable.md
+CLAUDE.md
+ai-drafts/
+merge-candidates/
+project-prompt/
