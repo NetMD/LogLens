@@ -66,34 +66,56 @@ jobs:
             Spring Boot 개발자를 위한 로그 분석 데스크탑 앱입니다.
 
             ### 다운로드 | Download
-            | OS | 파일 |
-            |----|------|
-            | macOS Apple Silicon | `LogLens_*_aarch64.dmg` |
-            | macOS Intel | `LogLens_*_x64.dmg` |
-            | Windows | `LogLens_*_x64-setup.exe` |
-            | Windows MSI | `LogLens_*_x64_en-US.msi` |
-            | Windows 포터블 | `LogLens_*_x64_portable.exe` |
+            | OS | 파일 | 설명 |
+            |----|------|------|
+            | macOS Apple Silicon | `LogLens_*_aarch64.dmg` | 설치형 |
+            | macOS Intel | `LogLens_*_x64.dmg` | 설치형 |
+            | Windows 설치형 | `LogLens_*_x64-setup.exe` | 설치 후 실행 |
+            | Windows 포터블 | `LogLens_*_x64_portable.zip` | 압축 해제 후 바로 실행 |
 
             ### 요구사항 | Requirements
             - macOS 10.15 이상
-            - Windows 10 이상
+            - Windows 10 이상 (WebView2 필요 - Windows 10/11 기본 설치됨)
 
-            ### macOS 실행 시
-            처음 실행 시 "개발자를 확인할 수 없습니다" 경고가 뜰 수 있습니다.
-            Finder에서 앱을 우클릭 → [열기] 를 선택하면 실행됩니다.
+            ---
 
             ### macOS 실행 시 보안 경고
-
             Apple Developer 서명이 없어 경고가 표시될 수 있습니다.
 
-            **방법 1 (터미널)**
+            **방법 1 (터미널 — 권장)**
             ```bash
             xattr -cr /Applications/LogLens.app
             ```
 
-            ### Windows 실행 시
+            **방법 2 (Finder)**
+            1. DMG 마운트 후 앱을 Applications로 복사
+            2. Finder에서 LogLens.app 우클릭
+            3. option 키를 누른 상태에서 [열기] 클릭
+
+            ---
+
+            ### Windows 실행 시 보안 경고
             SmartScreen 경고가 뜰 경우
             [추가 정보] → [실행] 을 클릭하면 됩니다.
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Create portable zip (Windows only)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          $exePath = "src-tauri/target/release/loglens.exe"
+          $zipName = "LogLens_${version}_x64_portable.zip"
+          Compress-Archive -Path $exePath -DestinationPath $zipName
+          echo "PORTABLE_ZIP=$zipName" >> $env:GITHUB_ENV
+
+      - name: Upload portable zip to release (Windows only)
+        if: matrix.platform == 'windows-latest'
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: ${{ env.PORTABLE_ZIP }}
