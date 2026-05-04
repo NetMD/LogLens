@@ -36,8 +36,10 @@
       "icons/icon.icns"
     ],
     "createUpdaterArtifacts": true,
-    "nsis": {
-      "installMode": "both"
+    "windows": {
+      "nsis": {
+        "installMode": "both"
+      }
     }
   },
   "plugins": {
