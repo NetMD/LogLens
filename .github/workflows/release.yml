@@ -9,6 +9,8 @@ jobs:
   release:
     permissions:
       contents: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
       fail-fast: false
       matrix:
@@ -77,6 +79,15 @@ jobs:
             ### macOS 실행 시
             처음 실행 시 "개발자를 확인할 수 없습니다" 경고가 뜰 수 있습니다.
             Finder에서 앱을 우클릭 → [열기] 를 선택하면 실행됩니다.
+
+            ### macOS 실행 시 보안 경고
+
+            Apple Developer 서명이 없어 경고가 표시될 수 있습니다.
+
+            **방법 1 (터미널)**
+            \```bash
+            xattr -cr /Applications/LogLens.app
+            \```
 
             ### Windows 실행 시
             SmartScreen 경고가 뜰 경우
