@@ -71,6 +71,8 @@ jobs:
             | macOS Apple Silicon | `LogLens_*_aarch64.dmg` |
             | macOS Intel | `LogLens_*_x64.dmg` |
             | Windows | `LogLens_*_x64-setup.exe` |
+            | Windows MSI | `LogLens_*_x64_en-US.msi` |
+            | Windows 포터블 | `LogLens_*_x64_portable.exe` |
 
             ### 요구사항 | Requirements
             - macOS 10.15 이상
@@ -85,9 +87,9 @@ jobs:
             Apple Developer 서명이 없어 경고가 표시될 수 있습니다.
 
             **방법 1 (터미널)**
-            \```bash
+            ```bash
             xattr -cr /Applications/LogLens.app
-            \```
+            ```
 
             ### Windows 실행 시
             SmartScreen 경고가 뜰 경우
