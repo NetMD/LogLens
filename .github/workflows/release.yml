@@ -15,8 +15,10 @@ jobs:
         include:
           - platform: macos-latest
             args: '--target aarch64-apple-darwin'
+            arch: aarch64
           - platform: macos-latest
             args: '--target x86_64-apple-darwin'
+            arch: x64
           - platform: windows-latest
             args: ''
 
@@ -67,6 +69,15 @@ jobs:
             -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
 
+      - name: Write Apple API Key file (macOS only)
+        if: matrix.platform == 'macos-latest'
+        env:
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY }}
+        run: |
+          mkdir -p ~/.private_keys
+          echo -n "$APPLE_API_KEY_CONTENT" | base64 --decode \
+            > ~/.private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+
       - name: Install frontend dependencies
         run: pnpm install
 
@@ -78,9 +89,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_API_KEY_PATH: ~/.private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: ${{ github.ref_name }}
@@ -93,8 +104,10 @@ jobs:
             ### 다운로드 | Download
             | OS | 파일 | 설명 |
             |----|------|------|
-            | macOS Apple Silicon | `LogLens_*_aarch64.dmg` | 설치형 |
-            | macOS Intel | `LogLens_*_x64.dmg` | 설치형 |
+            | macOS Apple Silicon 설치형 | `LogLens_*_aarch64.dmg` | DMG 설치 |
+            | macOS Apple Silicon 포터블 | `LogLens_*_aarch64_portable.zip` | 압축 해제 후 바로 실행 |
+            | macOS Intel 설치형 | `LogLens_*_x64.dmg` | DMG 설치 |
+            | macOS Intel 포터블 | `LogLens_*_x64_portable.zip` | 압축 해제 후 바로 실행 |
             | Windows 설치형 | `LogLens_*_x64-setup.exe` | 설치 후 실행 |
             | Windows 포터블 | `LogLens_*_x64_portable.zip` | 압축 해제 후 바로 실행 |
 
@@ -113,6 +126,26 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Create macOS portable zip (macOS only)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          version="${{ github.ref_name }}"
+          version="${version#v}"
+          arch="${{ matrix.arch }}"
+          app_path="src-tauri/target/${{ matrix.arch == 'aarch64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin' }}/release/bundle/macos/LogLens.app"
+          zip_name="LogLens_${version}_${arch}_portable.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$app_path" "$zip_name"
+          echo "PORTABLE_ZIP=$zip_name" >> $GITHUB_ENV
+
+      - name: Upload macOS portable zip (macOS only)
+        if: matrix.platform == 'macos-latest'
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: ${{ env.PORTABLE_ZIP }}
 
       - name: Cleanup keychain (macOS only)
         if: matrix.platform == 'macos-latest' && always()
