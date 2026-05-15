@@ -1,3 +1,4 @@
+#[cfg(target_os = "macos")]
 use tauri::Manager;
 
 /// macOS 파일 다이얼로그 디렉토리를 다운로드 폴더로 리셋하는 커맨드.
