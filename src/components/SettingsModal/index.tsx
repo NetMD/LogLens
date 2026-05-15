@@ -1,7 +1,10 @@
 // 설정 모달 메인 쉘 (560x580px, 3섹션, 저장/취소)
 
 import { useEffect, useId, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
+import i18n from '../../i18n';
+import type { Language } from '../../i18n/languages';
 import { useUiStore } from '../../store/uiStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useSettings } from '../../hooks/useSettings';
@@ -18,12 +21,13 @@ import { useHistoryStore } from '../../store/historyStore';
 import { useHistory } from '../../hooks/useHistory';
 
 export function SettingsModal() {
+  const { t } = useTranslation();
   const isOpen = useUiStore((s) => s.isSettingsModalOpen);
   const scrollTarget = useUiStore((s) => s.settingsModalScrollTarget);
   const closeSettingsModal = useUiStore((s) => s.closeSettingsModal);
   const clearSettingsScrollTarget = useUiStore((s) => s.clearSettingsScrollTarget);
 
-  const { save } = useSettings();
+  const { save, setLanguage } = useSettings();
   const historyCount = useHistoryStore((s) => s.entries.length);
   const { clear: clearHistory } = useHistory();
 
@@ -32,10 +36,12 @@ export function SettingsModal() {
   const aboutSectionRef = useRef<HTMLDivElement>(null);
   const aiSectionRef = useRef<HTMLDivElement>(null);
   const prevThemeRef = useRef<AppSettings['theme']>('dark');
+  const prevLanguageRef = useRef<Language>('ko');
 
   // 로컬 draft 상태 (저장 전까지 settingsStore에 반영하지 않음)
   const [draft, setDraft] = useState<AppSettings>({ ...DEFAULT_SETTINGS });
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Tab 트랩
   useFocusTrap(containerRef, {
@@ -62,8 +68,10 @@ export function SettingsModal() {
         showDebugLog: current.showDebugLog,
         localLlmEndpoint: current.localLlmEndpoint,
         localLlmModel: current.localLlmModel,
+        language: current.language,
       });
       prevThemeRef.current = current.theme;
+      prevLanguageRef.current = current.language;
       setSaveError(null);
     }
   }, [isOpen]);
@@ -92,24 +100,51 @@ export function SettingsModal() {
     document.documentElement.dataset.theme = resolved;
   }
 
-  // 취소: 테마 롤백 + draft 폐기 + 모달 닫기
+  // 언어 변경: 단일 위임 함수 setLanguage() 호출 (i18n → tauri → settingsStore)
+  // 라디오 클릭 시 즉시 UI 갱신 (테마와 동일한 즉시 프리뷰 패턴)
+  function handleLanguageChange(lang: Language) {
+    setDraft((d) => ({ ...d, language: lang }));
+    // 즉시 프리뷰 (UI 만 — Tauri store 저장은 handleSave 가 처리)
+    void i18n.changeLanguage(lang); // allow: settings preview path
+  }
+
+  // 취소: 테마 + 언어 롤백 + draft 폐기 + 모달 닫기
   function handleCancel() {
     const prev = prevThemeRef.current;
     const resolved = prev === 'system'
       ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
       : prev;
     document.documentElement.dataset.theme = resolved;
+    // 언어 프리뷰 롤백
+    const prevLang = prevLanguageRef.current;
+    if (i18n.language !== prevLang) {
+      void i18n.changeLanguage(prevLang); // allow: settings cancel rollback path
+    }
     closeSettingsModal();
   }
 
   // 저장: sanitize -> settingsStore + settings.json 기록 -> 모달 닫기
+  // 언어가 바뀌었으면 setLanguage 단일 위임 함수를 명시적으로 호출하여
+  // i18n.changeLanguage 의 유일한 호출 진입점 패턴(R12 설계서 §4.2)을 보존한다.
   async function handleSave() {
     const sanitized = sanitizeSettings(draft);
+    setIsSavingSettings(true);
     try {
+      // (1) 언어가 바뀌었으면 단일 위임 함수 setLanguage() 로 i18n+영속화+미러 갱신.
+      //     i18n.changeLanguage 는 이미 handleLanguageChange 에서 즉시 프리뷰 적용됐지만,
+      //     setLanguage() 는 idempotent 하므로 동일 lang 재호출도 안전하다.
+      //     (i18next 자체가 동일 언어 재설정 시 no-op + Tauri store 멱등 write)
+      if (prevLanguageRef.current !== sanitized.language) {
+        await setLanguage(sanitized.language);
+      }
+      // (2) 나머지 모든 필드를 일괄 저장. save() 의 for 루프가 language 도 동일 값으로
+      //     덮어쓰지만 멱등이므로 무해.
       await save(sanitized);
       closeSettingsModal();
     } catch {
       setSaveError(ERROR_LABELS.SETTINGS_SAVE_FAILED);
+    } finally {
+      setIsSavingSettings(false);
     }
   }
 
@@ -132,12 +167,12 @@ export function SettingsModal() {
         {/* 헤더 (고정) */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border-default)] shrink-0">
           <h2 id={titleId} className="text-base font-semibold text-[var(--color-text-primary)]">
-            설정
+            {t('settings.title')}
           </h2>
           <button
             type="button"
             onClick={handleCancel}
-            aria-label="설정 닫기"
+            aria-label={t('settings.close')}
             className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none rounded-lg p-1"
           >
             <X className="w-5 h-5" />
@@ -151,9 +186,13 @@ export function SettingsModal() {
             theme={draft.theme}
             fontFamily={draft.fontFamily}
             fontSize={draft.fontSize}
+            language={draft.language}
+            isSavingSettings={isSavingSettings}
+            i18nReady={i18n.isInitialized}
             onThemeChange={handleThemeChange}
             onFontFamilyChange={(fontFamily) => setDraft((d) => ({ ...d, fontFamily }))}
             onFontSizeChange={(fontSize) => setDraft((d) => ({ ...d, fontSize }))}
+            onLanguageChange={handleLanguageChange}
           />
 
           {/* 로그 뷰어 섹션 */}
@@ -216,16 +255,18 @@ export function SettingsModal() {
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2 text-sm rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none"
+              disabled={isSavingSettings}
+              className="px-4 py-2 text-sm rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              취소
+              {t('settings.cancel')}
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="px-4 py-2 text-sm rounded-lg font-medium bg-[var(--color-button-primary-bg)] text-white hover:bg-[var(--color-button-primary-bg-hover)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none"
+              disabled={isSavingSettings}
+              className="px-4 py-2 text-sm rounded-lg font-medium bg-[var(--color-button-primary-bg)] text-white hover:bg-[var(--color-button-primary-bg-hover)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              저장
+              {t('settings.save')}
             </button>
           </div>
         </div>

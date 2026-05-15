@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Sparkles } from "lucide-react";
 import type { LogEntry } from "../../utils/logParser";
 import type { SingleDiagnosisInput } from "../../types/diagnosis";
@@ -31,6 +32,7 @@ interface Props {
 }
 
 export function StackTraceCard({ entry, entries }: Props) {
+  const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(
     entry.level === "ERROR" || entry.level === "FATAL"
   );
@@ -48,9 +50,9 @@ export function StackTraceCard({ entry, entries }: Props) {
   const showAiButton = entry.level === "ERROR" || entry.level === "FATAL";
   const isAiDisabled = !aiProvider || isDiagnosisViewOpen;
   const tooltipContent = !aiProvider
-    ? 'AI 프로바이더를 먼저 설정해주세요'
+    ? t('stackTrace.providerRequired')
     : isDiagnosisViewOpen
-      ? '분석이 진행 중입니다'
+      ? t('stackTrace.analyzingInProgress')
       : null;
 
   const handleDiagnose = (e: React.MouseEvent) => {
@@ -93,7 +95,7 @@ export function StackTraceCard({ entry, entries }: Props) {
           role: "button",
           tabIndex: 0,
           "aria-expanded": isExpanded,
-          "aria-label": isExpanded ? "스택트레이스 접기" : "스택트레이스 펼치기",
+          "aria-label": isExpanded ? t('stackTrace.collapse') : t('stackTrace.expand'),
           onKeyDown: (e: React.KeyboardEvent) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
@@ -136,7 +138,7 @@ export function StackTraceCard({ entry, entries }: Props) {
           <div className="flex-shrink-0 flex items-center gap-2">
             {userFrameCount > 0 && (
               <span className="text-[10px] text-[var(--color-status-warn-fg)] dark:text-[var(--color-status-warn-fg)] bg-[var(--color-status-warn-bg)] dark:bg-[var(--color-status-warn-bg)] px-1.5 py-0.5 rounded">
-                {userFrameCount} user frames
+                {userFrameCount} {t('stackTrace.userFrames')}
               </span>
             )}
             {/* AI 진단 버튼 */}
@@ -146,10 +148,10 @@ export function StackTraceCard({ entry, entries }: Props) {
                   onClick={handleDiagnose}
                   disabled={isAiDisabled}
                   className="flex items-center gap-0.5 bg-[var(--color-accent-primary)] text-white font-medium border border-[var(--color-accent-primary)] rounded px-1.5 py-0.5 text-[10px] hover:bg-[var(--color-accent-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none"
-                  aria-label={`${entry.exceptionClass ?? 'Error'} AI 진단`}
+                  aria-label={t('stackTrace.aiDiagnoseLabel', { exception: entry.exceptionClass ?? 'Error' })}
                 >
                   <Sparkles className="w-3 h-3" />
-                  AI 진단
+                  {t('stackTrace.aiDiagnose')}
                 </button>
               </Tooltip>
             )}

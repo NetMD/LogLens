@@ -1,6 +1,7 @@
 // 진단 히스토리 탭 (3번째 탭)
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { History } from 'lucide-react';
 import type { DiagnosisHistory } from '../../types/diagnosis';
 import { SeverityBadge } from './SeverityBadge';
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function DiagnosisHistoryTab({ histories, onView, onDelete, onClearAll }: Props) {
+  const { t, i18n } = useTranslation();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
 
@@ -23,7 +25,7 @@ export function DiagnosisHistoryTab({ histories, onView, onDelete, onClearAll }:
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center p-8">
         <History className="w-10 h-10 text-[var(--color-text-disabled)]" />
-        <p className="text-sm text-[var(--color-text-disabled)]">저장된 진단 기록이 없습니다</p>
+        <p className="text-sm text-[var(--color-text-disabled)]">{t('aiDiagnosis.noHistoryShort')}</p>
       </div>
     );
   }
@@ -33,13 +35,13 @@ export function DiagnosisHistoryTab({ histories, onView, onDelete, onClearAll }:
       {/* 상단: 전체 삭제 */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--color-border-default)] flex-shrink-0">
         <span className="text-xs text-[var(--color-text-tertiary)]">
-          {histories.length}건의 진단 기록
+          {t('aiDiagnosis.historyCount', { count: histories.length })}
         </span>
         <button
           onClick={() => setConfirmClearAll(true)}
           className="text-xs text-[var(--color-status-error-fg)] hover:text-[var(--color-status-error-fg)] transition-colors"
         >
-          전체 삭제
+          {t('aiDiagnosis.deleteAll')}
         </button>
       </div>
 
@@ -47,7 +49,8 @@ export function DiagnosisHistoryTab({ histories, onView, onDelete, onClearAll }:
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {histories.map((history) => {
           const providerLabel = AI_PROVIDER_LABELS[history.provider] ?? history.provider;
-          const date = new Date(history.savedAt).toLocaleString('ko-KR', {
+          const locale = i18n.language === 'en' ? 'en-US' : 'ko-KR';
+          const date = new Date(history.savedAt).toLocaleString(locale, {
             month: '2-digit',
             day: '2-digit',
             hour: '2-digit',
@@ -83,7 +86,7 @@ export function DiagnosisHistoryTab({ histories, onView, onDelete, onClearAll }:
                     <SeverityBadge severity={history.unidirectional.severity} />
                   )}
                   <span className="text-[10px] text-[var(--color-text-disabled)]">
-                    {history.tokensUsed.toLocaleString()} 토큰
+                    {t('aiDiagnosis.tokensUnit', { count: history.tokensUsed.toLocaleString() })}
                     {history.estimatedCost > 0 && ` · ~$${history.estimatedCost.toFixed(4)}`}
                   </span>
                 </div>
@@ -92,13 +95,13 @@ export function DiagnosisHistoryTab({ histories, onView, onDelete, onClearAll }:
                     onClick={() => onView(history)}
                     className="text-xs text-[var(--color-accent-primary)] hover:text-[var(--color-accent-primary)] hover:underline transition-colors"
                   >
-                    보기
+                    {t('aiDiagnosis.view')}
                   </button>
                   <button
                     onClick={() => setConfirmDelete(history.id)}
                     className="text-xs text-[var(--color-status-error-fg)] hover:text-[var(--color-status-error-fg)] hover:underline transition-colors"
                   >
-                    삭제
+                    {t('aiDiagnosis.delete')}
                   </button>
                 </div>
               </div>
@@ -110,10 +113,10 @@ export function DiagnosisHistoryTab({ histories, onView, onDelete, onClearAll }:
       {/* 개별 삭제 확인 */}
       <ConfirmDialog
         open={confirmDelete !== null}
-        title="진단 기록 삭제"
-        description="이 진단 기록을 삭제하시겠습니까?"
-        confirmLabel="삭제"
-        cancelLabel="취소"
+        title={t('aiDiagnosis.historyDeleteOneTitle')}
+        description={t('aiDiagnosis.historyDeleteOneDesc')}
+        confirmLabel={t('aiDiagnosis.delete')}
+        cancelLabel={t('aiDiagnosis.cancel')}
         destructive
         onConfirm={async () => {
           if (confirmDelete) await onDelete(confirmDelete);
@@ -125,10 +128,10 @@ export function DiagnosisHistoryTab({ histories, onView, onDelete, onClearAll }:
       {/* 전체 삭제 확인 */}
       <ConfirmDialog
         open={confirmClearAll}
-        title="전체 진단 기록 삭제"
-        description="모든 진단 기록을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
-        confirmLabel="전체 삭제"
-        cancelLabel="취소"
+        title={t('aiDiagnosis.historyDeleteAllTitle')}
+        description={t('aiDiagnosis.historyDeleteAllDesc')}
+        confirmLabel={t('aiDiagnosis.deleteAll')}
+        cancelLabel={t('aiDiagnosis.cancel')}
         destructive
         onConfirm={async () => {
           await onClearAll();

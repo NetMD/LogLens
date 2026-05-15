@@ -5,6 +5,7 @@
 
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useId, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { LoadingSpinner } from "./LoadingSpinner";
 
 interface Props {
@@ -29,8 +30,8 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = "확인",
-  cancelLabel = "취소",
+  confirmLabel,
+  cancelLabel,
   destructive = false,
   onConfirm,
   onCancel,
@@ -38,6 +39,9 @@ export function ConfirmDialog({
   returnFocusRef,
   isBusy = false,
 }: Props) {
+  const { t } = useTranslation();
+  const resolvedConfirmLabel = confirmLabel ?? t('common.confirm');
+  const resolvedCancelLabel = cancelLabel ?? t('common.cancel');
   const titleId = useId();
   const descId = useId();
   const cancelBtnRef = useRef<HTMLButtonElement | null>(null);
@@ -161,7 +165,7 @@ export function ConfirmDialog({
             disabled={isBusy}
             className="px-3 py-1.5 text-xs rounded-md text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] disabled:text-[var(--color-text-disabled)] disabled:hover:bg-transparent focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none motion-safe:transition-colors"
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           {extraAction && (
             <button
@@ -181,7 +185,7 @@ export function ConfirmDialog({
             className={`px-3 py-1.5 text-xs rounded-md text-white flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none motion-safe:transition-colors ${confirmBtnClass}`}
           >
             {isBusy && <LoadingSpinner size="sm" />}
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </button>
         </div>
       </div>

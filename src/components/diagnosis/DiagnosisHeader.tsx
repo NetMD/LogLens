@@ -1,6 +1,7 @@
 // AI 진단 화면 헤더 (프로바이더 드롭다운 + 모델 셀렉트 분리)
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Settings, ChevronDown, Check, RefreshCw } from 'lucide-react';
 import type { DiagnosisInput } from '../../types/diagnosis';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function DiagnosisHeader({ input, onBack }: Props) {
+  const { t } = useTranslation();
   const aiProvider = useSettingsStore((s) => s.aiProvider);
   const aiModel = useSettingsStore((s) => s.aiModel);
   const aiApiKeys = useSettingsStore((s) => s.aiApiKeys);
@@ -54,15 +56,15 @@ export function DiagnosisHeader({ input, onBack }: Props) {
 
   const exceptionClass = input.type === 'exception'
     ? input.exceptionClass
-    : (input.logEntry.exceptionClass?.split('.').pop() ?? 'Unknown');
+    : (input.logEntry.exceptionClass?.split('.').pop() ?? t('aiDiagnosis.unknownClass'));
 
   const fullName = input.type === 'exception'
     ? input.fullName
-    : (input.logEntry.exceptionClass ?? 'Unknown');
+    : (input.logEntry.exceptionClass ?? t('aiDiagnosis.unknownClass'));
 
   const count = input.type === 'exception' ? input.count : 1;
 
-  const providerLabel = aiProvider ? AI_PROVIDER_LABELS[aiProvider] : '미설정';
+  const providerLabel = aiProvider ? AI_PROVIDER_LABELS[aiProvider] : t('aiDiagnosis.providerNotSet');
   const isLocal = aiProvider === 'local';
 
   // 프로바이더 키 유무 확인
@@ -146,15 +148,15 @@ export function DiagnosisHeader({ input, onBack }: Props) {
         <button
           onClick={onBack}
           className="flex items-center gap-1.5 text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-colors"
-          aria-label="뒤로 가기"
+          aria-label={t('aiDiagnosis.backAria')}
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>뒤로</span>
+          <span>{t('aiDiagnosis.back')}</span>
         </button>
 
         <div className="flex-1 min-w-0">
           <h1 className="text-sm font-semibold text-[var(--color-text-primary)] truncate">
-            AI 진단: {exceptionClass} ({count.toLocaleString()}건)
+            {t('aiDiagnosis.headerTitle', { name: exceptionClass, count: count.toLocaleString() })}
           </h1>
           <p className="text-xs text-[var(--color-text-tertiary)] font-mono truncate" title={fullName}>
             {fullName}
@@ -177,7 +179,7 @@ export function DiagnosisHeader({ input, onBack }: Props) {
           {providerOpen && (
             <div className="absolute left-0 top-full mt-1 w-60 bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] rounded-lg shadow-xl z-50 overflow-hidden">
               <div className="px-3 py-2 border-b border-[var(--color-border-default)]">
-                <span className="text-xs font-semibold text-[var(--color-text-secondary)]">프로바이더 선택</span>
+                <span className="text-xs font-semibold text-[var(--color-text-secondary)]">{t('aiDiagnosis.providerSelect')}</span>
               </div>
               <div className="py-1">
                 {AI_PROVIDERS.map((p) => {
@@ -204,7 +206,7 @@ export function DiagnosisHeader({ input, onBack }: Props) {
                         {label}
                       </span>
                       {!hasApiKey && (
-                        <span className="text-[10px] text-[var(--color-status-warn-fg)]/70 ml-auto">키 미등록</span>
+                        <span className="text-[10px] text-[var(--color-status-warn-fg)]/70 ml-auto">{t('aiDiagnosis.providerKeyMissing')}</span>
                       )}
                     </button>
                   );
@@ -219,7 +221,7 @@ export function DiagnosisHeader({ input, onBack }: Props) {
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] transition-colors"
                 >
                   <Settings className="w-3.5 h-3.5" />
-                  API 키 관리
+                  {t('aiDiagnosis.apiKeyManage')}
                 </button>
               </div>
             </div>
@@ -247,7 +249,7 @@ export function DiagnosisHeader({ input, onBack }: Props) {
             <button
               onClick={handleRefreshModels}
               disabled={refreshingModels}
-              title="프로바이더 API에서 모델 목록 새로고침"
+              title={t('aiDiagnosis.providerRefreshTooltip')}
               className="flex items-center gap-1 text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] border border-[var(--color-border-default)] rounded-lg px-2 py-1.5 transition-colors disabled:opacity-40"
             >
               <RefreshCw className={`w-3 h-3 ${refreshingModels ? 'animate-spin' : ''}`} />
@@ -260,7 +262,7 @@ export function DiagnosisHeader({ input, onBack }: Props) {
                 disabled={refreshingModels}
                 className="text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] border border-[var(--color-border-default)] rounded-lg px-2 py-1.5 transition-colors disabled:opacity-40"
               >
-                {preferHardcodedList ? '실시간' : '기본'}
+                {preferHardcodedList ? t('aiDiagnosis.live') : t('aiDiagnosis.default')}
               </button>
             )}
           </>
@@ -269,7 +271,7 @@ export function DiagnosisHeader({ input, onBack }: Props) {
         {/* 로컬 LLM 모델 표시 */}
         {isLocal && (
           <span className="text-xs text-[var(--color-text-secondary)] bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] rounded-lg px-3 py-1.5">
-            {localLlmModel || '모델 미설정'}
+            {localLlmModel || t('aiDiagnosis.modelNotSet')}
           </span>
         )}
       </div>

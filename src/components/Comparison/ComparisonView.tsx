@@ -7,6 +7,7 @@
 // 드롭존 A/B 의 getBoundingClientRect 와 비교하여 직접 판정한다.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import {
   useComparisonStore,
@@ -20,6 +21,7 @@ import { ChartComparison } from "./ChartComparison";
 import { RotateCcw } from "lucide-react";
 
 export function ComparisonView() {
+  const { t } = useTranslation();
   const fileA = useComparisonStore((s) => s.fileA);
   const fileB = useComparisonStore((s) => s.fileB);
   const comparisonResult = useComparisonStore((s) => s.comparisonResult);
@@ -114,17 +116,17 @@ export function ComparisonView() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-base font-semibold text-[var(--color-text-primary)]">
-            로그 비교
+            {t('comparison.title')}
           </h1>
           <p className="text-sm text-[var(--color-text-tertiary)] mt-1">
-            두 로그 파일을 비교하여 차이점을 분석합니다
+            {t('comparison.desc')}
           </p>
         </div>
         {phase !== "select" && (
           <button
             onClick={handleReset}
             className="p-2 rounded-md text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]"
-            aria-label="비교 초기화"
+            aria-label={t('comparison.resetTooltip')}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -208,8 +210,8 @@ export function ComparisonView() {
           <ChartComparison
             timelineA={fileA.analysis!.timeline}
             timelineB={fileB.analysis!.timeline}
-            fileNameA={fileA.fileName ?? "파일 A"}
-            fileNameB={fileB.fileName ?? "파일 B"}
+            fileNameA={fileA.fileName ?? t('comparison.fileA')}
+            fileNameB={fileB.fileName ?? t('comparison.fileB')}
           />
         </div>
       )}

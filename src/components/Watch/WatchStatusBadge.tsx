@@ -5,6 +5,7 @@
 
 import { AlertTriangle, Loader2, RotateCw, StopCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useLogWatchActions } from "../../hooks/useLogWatch";
 import { useLogStore } from "../../store/logStore";
@@ -15,6 +16,7 @@ import { StatusDot } from "../shared/StatusDot";
 const SPINNER_DELAY_MS = 50;
 
 export function WatchStatusBadge() {
+  const { t } = useTranslation();
   const appMode = useUiStore((s) => s.appMode);
   const watchMode = useLogStore((s) => s.watchMode);
   const watchPath = useLogStore((s) => s.watchPath);
@@ -76,10 +78,10 @@ export function WatchStatusBadge() {
           <span aria-hidden="true" className="text-[var(--color-text-tertiary)]">
             ○
           </span>
-          <span>대기 중</span>
+          <span>{t('realtime.idle')}</span>
         </>
       );
-      ariaLabel = "실시간 감시 대기 중 — 클릭하여 재시작";
+      ariaLabel = t('realtime.idleAriaLabel');
       isClickable = true;
       break;
     case "starting":
@@ -88,17 +90,17 @@ export function WatchStatusBadge() {
       content = showStartingSpinner ? (
         <>
           <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" />
-          <span>시작 중</span>
+          <span>{t('realtime.starting2')}</span>
         </>
       ) : (
         <>
           <span aria-hidden="true" className="text-[var(--color-status-warn-fg)]">
             ○
           </span>
-          <span>시작 중</span>
+          <span>{t('realtime.starting2')}</span>
         </>
       );
-      ariaLabel = "실시간 감시 시작 중";
+      ariaLabel = t('realtime.startingAriaLabel');
       break;
     case "watching":
       variantClass =
@@ -106,11 +108,11 @@ export function WatchStatusBadge() {
       content = (
         <>
           <StatusDot variant="emerald" pulse />
-          <span>감시 중</span>
+          <span>{t('realtime.watching')}</span>
           <StopCircle className="w-3.5 h-3.5 opacity-70" />
         </>
       );
-      ariaLabel = "실시간 감시 중 — 클릭하여 중지";
+      ariaLabel = t('realtime.watchingAriaLabel');
       isClickable = true;
       break;
     case "error":
@@ -119,11 +121,11 @@ export function WatchStatusBadge() {
       content = (
         <>
           <AlertTriangle className="w-3.5 h-3.5" />
-          <span>오류</span>
+          <span>{t('realtime.errorState')}</span>
           <RotateCw className="w-3.5 h-3.5 opacity-80" />
         </>
       );
-      ariaLabel = "실시간 감시 오류 — 클릭하여 재시도";
+      ariaLabel = t('realtime.errorStateAriaLabel');
       isClickable = true;
       break;
   }

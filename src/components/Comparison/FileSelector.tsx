@@ -13,6 +13,7 @@ import {
   Loader2,
   X,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { ComparisonFileState } from "../../store/comparisonStore";
 
 // --- Props ---
@@ -89,6 +90,7 @@ export function FileSelector({
   isDragTarget,
   disabled,
 }: FileSelectorProps) {
+  const { t } = useTranslation();
   const state = getState(fileState, side, otherSideState);
   const colors = SIDE_COLORS[side];
 
@@ -110,7 +112,7 @@ export function FileSelector({
       <div
         role="button"
         tabIndex={0}
-        aria-label={`파일 ${side} 선택`}
+        aria-label={t('comparison.fileSideAria', { side })}
         className={`${containerClass} rounded-xl p-8 min-h-[280px]
           flex flex-col items-center justify-center relative
           cursor-pointer transition-all duration-200
@@ -136,13 +138,13 @@ export function FileSelector({
 
         {/* 안내 텍스트 */}
         <p className="text-sm font-medium text-[var(--color-text-primary)] mb-1">
-          파일 {side}
+          {t('comparison.fileSide', { side })}
         </p>
         <p className="text-xs text-[var(--color-text-tertiary)] mb-4">
-          파일을 드래그하거나 클릭하세요
+          {t('comparison.dragDropOrClick')}
         </p>
         <p className="text-xs text-[var(--color-text-disabled)] mb-4">
-          .log, .txt, .csv — 최대 500MB
+          {t('comparison.fileSelectorDesc')}
         </p>
 
         {/* 파일 선택 버튼 */}
@@ -153,7 +155,7 @@ export function FileSelector({
             onFileSelect(side);
           }}
         >
-          파일 선택
+          {t('fileAnalysis.selectFile')}
         </button>
       </div>
     );
@@ -183,10 +185,10 @@ export function FileSelector({
               hover:text-[var(--color-text-secondary)]
               hover:bg-[var(--color-bg-hover)]"
             onClick={() => onFileSelect(side)}
-            aria-label={`파일 ${side} 교체`}
+            aria-label={t('comparison.fileReplaceAria', { side })}
           >
             <RefreshCw className="w-3 h-3 inline mr-1" />
-            교체
+            {t('comparison.replace')}
           </button>
           <button
             className="text-xs px-2 py-1 rounded
@@ -195,10 +197,10 @@ export function FileSelector({
               hover:text-[var(--color-status-error-fg)]
               hover:bg-[var(--color-status-error-bg)]"
             onClick={() => onClear(side)}
-            aria-label={`파일 ${side} 해제`}
+            aria-label={t('comparison.fileReleaseAria', { side })}
           >
             <X className="w-3 h-3 inline mr-1" />
-            해제
+            {t('comparison.release')}
           </button>
         </div>
 
@@ -215,7 +217,7 @@ export function FileSelector({
         </p>
 
         <p className="text-xs text-[var(--color-text-disabled)]">
-          {side === "A" ? "파일 B를 선택하면 비교를 시작합니다" : "파일 A를 선택하면 비교를 시작합니다"}
+          {t('comparison.waitingForOther', { side: side === "A" ? "B" : "A" })}
         </p>
       </div>
     );
@@ -251,7 +253,7 @@ export function FileSelector({
             aria-valuenow={fileState.progress}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label={`파일 ${side} 파싱 진행률`}
+            aria-label={t('comparison.fileProgressAria', { side })}
           >
             <div
               className={`h-full ${colors.progress} rounded-full transition-all duration-150`}
@@ -264,7 +266,7 @@ export function FileSelector({
         </div>
 
         <p className="text-xs text-[var(--color-text-tertiary)] mt-2">
-          파싱 중...
+          {t('comparison.parsing')}
         </p>
       </div>
     );
@@ -299,10 +301,10 @@ export function FileSelector({
             hover:text-[var(--color-text-secondary)]
             hover:bg-[var(--color-bg-hover)]"
           onClick={() => onReplace(side)}
-          aria-label={`파일 ${side} 교체`}
+          aria-label={t('comparison.fileReplaceAria', { side })}
         >
           <RefreshCw className="w-3 h-3 inline mr-1" />
-          교체
+          {t('comparison.replace')}
         </button>
 
         {/* 파일 정보 */}
@@ -326,7 +328,7 @@ export function FileSelector({
         {/* 통계 */}
         <div className="mt-2">
           <p className="text-xs text-[var(--color-text-secondary)]">
-            전체 {analysis.totalEntries.toLocaleString()}건
+            {t('comparison.totalEntries', { count: analysis.totalEntries.toLocaleString() })}
           </p>
           <p className="text-xs">
             <span className="text-[var(--color-status-error-fg)]">
@@ -339,7 +341,7 @@ export function FileSelector({
           </p>
           {analysis.totalEntries === 0 && (
             <p className="text-xs text-[var(--color-status-warn-fg)] mt-1">
-              인식된 로그 항목이 없습니다
+              {t('comparison.noLogEntries')}
             </p>
           )}
         </div>
@@ -369,11 +371,11 @@ export function FileSelector({
             text-[var(--color-status-error-fg)] hover:bg-[var(--color-status-error-bg)]"
           onClick={() => onFileSelect(side)}
         >
-          재시도
+          {t('common.retry')}
         </button>
 
         <AlertTriangle className="w-5 h-5 text-[var(--color-accent-danger)] mb-2" />
-        <p className="text-sm font-medium text-[var(--color-status-error-fg)] mb-1">파싱 실패</p>
+        <p className="text-sm font-medium text-[var(--color-status-error-fg)] mb-1">{t('comparison.parseFailLabel')}</p>
         <p className="text-xs text-[var(--color-status-error-fg)]/80 text-center max-w-[240px]">
           {fileState.parseError}
         </p>
@@ -405,7 +407,7 @@ export function FileSelector({
       <div className="flex items-center gap-2">
         <Loader2 className="w-3 h-3 animate-spin text-[var(--color-status-success-fg)]" />
         <span className="text-xs text-[var(--color-text-tertiary)]">
-          A 파싱 완료 후 시작됩니다
+          {t('comparison.waitingForA')}
         </span>
       </div>
     </div>

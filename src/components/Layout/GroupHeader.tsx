@@ -3,6 +3,7 @@
 // - chevron 클릭: onToggle (그룹 접기/펼치기)
 // - accent: 'file' | 'live' 좌측 2px 색상 바 + 기본 아이콘
 
+import { useTranslation } from "react-i18next";
 import {
   ChevronDown,
   ChevronRight,
@@ -37,6 +38,7 @@ export function GroupHeader({
   labelId,
   isActive,
 }: Props) {
+  const { t } = useTranslation();
   const ChevronIcon = collapsed ? ChevronRight : ChevronDown;
 
   // accent 별 좌측 바 색상
@@ -90,7 +92,10 @@ export function GroupHeader({
         }}
         aria-expanded={!collapsed}
         aria-label={
-          toggleAriaLabel ?? (collapsed ? `${label} 펼치기` : `${label} 접기`)
+          toggleAriaLabel ??
+          (collapsed
+            ? `${label} ${t('common.open')}`
+            : `${label} ${t('common.close')}`)
         }
         className="p-1 rounded text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)] motion-safe:transition-colors"
       >

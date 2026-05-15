@@ -5,6 +5,7 @@
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useLogStore } from "../../store/logStore";
 import { useUiStore } from "../../store/uiStore";
 import { EmptyLiveState } from "../shared/EmptyLiveState";
@@ -24,6 +25,7 @@ const LEVEL_CLASS: Record<string, string> = {
 };
 
 export function LiveLogView() {
+  const { t } = useTranslation();
   const entries = useLogStore((s) => s.entries);
   const autoScrollPaused = useUiStore((s) => s.autoScrollPaused);
   const setAutoScrollPaused = useUiStore((s) => s.setAutoScrollPaused);
@@ -99,12 +101,12 @@ export function LiveLogView() {
         className="flex-1 overflow-auto bg-[var(--color-bg-base)] log-viewer-font log-viewer-area"
         role="log"
         aria-live="off"
-        aria-label="실시간 로그"
+        aria-label={t('sidebar.realtimeLog')}
       >
         {entries.length === 0 ? (
           <EmptyLiveState
-            title="감시를 시작하고 로그를 기다리는 중"
-            description="실시간 로그가 들어오면 이 화면에 자동으로 표시됩니다."
+            title={t('realtime.emptyTitle')}
+            description={t('realtime.emptyDesc')}
           />
         ) : (
           <div

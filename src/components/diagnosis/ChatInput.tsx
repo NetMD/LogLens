@@ -1,6 +1,7 @@
 // 채팅 입력 (Enter/Shift+Enter, textarea 자동 확장)
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Send } from 'lucide-react';
 import { LoadingSpinner } from '../shared/LoadingSpinner';
 
@@ -14,6 +15,7 @@ interface Props {
 const MAX_MESSAGES = 50;
 
 export function ChatInput({ onSend, isStreaming, messageCount, canSendMessage }: Props) {
+  const { t } = useTranslation();
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isLimitReached = messageCount >= MAX_MESSAGES;
@@ -62,10 +64,10 @@ export function ChatInput({ onSend, isStreaming, messageCount, canSendMessage }:
   const isSendDisabled = !canSendMessage || !input.trim() || isStreaming || isLimitReached;
 
   const placeholder = isStreaming
-    ? 'AI가 응답 중입니다...'
+    ? t('aiDiagnosis.inputAsking')
     : isLimitReached
-      ? '메시지 제한에 도달했습니다'
-      : '질문을 입력하세요... (Shift+Enter로 줄바꿈)';
+      ? t('aiDiagnosis.inputLimitReached')
+      : t('aiDiagnosis.inputPlaceholderDefault');
 
   return (
     <div className="flex-shrink-0 border-t border-[var(--color-border-default)] bg-[var(--color-bg-surface)] px-3 py-3 min-h-[72px]">
@@ -73,7 +75,7 @@ export function ChatInput({ onSend, isStreaming, messageCount, canSendMessage }:
       {isLimitReached && (
         <div className="mb-2 bg-[var(--color-status-warn-bg)] border border-[var(--color-status-warn-border)] rounded-lg px-3 py-2">
           <p className="text-xs text-[var(--color-status-warn-fg)]">
-            최대 메시지 수(50)에 도달했습니다. 새 진단을 시작하세요.
+            {t('aiDiagnosis.messageLimitReached')}
           </p>
         </div>
       )}
@@ -90,7 +92,7 @@ export function ChatInput({ onSend, isStreaming, messageCount, canSendMessage }:
           className={`flex-1 bg-[var(--color-bg-input,var(--color-bg-elevated))] border border-[var(--color-border-default)] rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-disabled)] resize-none focus:outline-none focus:border-[var(--color-accent-primary)] focus:ring-1 focus:ring-[var(--color-border-focus)]/30 transition-colors ${
             isDisabled ? 'opacity-50 cursor-not-allowed' : ''
           }`}
-          aria-label="채팅 메시지 입력"
+          aria-label={t('aiDiagnosis.inputAria')}
         />
         <button
           onClick={handleSend}
@@ -100,7 +102,7 @@ export function ChatInput({ onSend, isStreaming, messageCount, canSendMessage }:
               ? 'bg-[var(--color-accent-primary-subtle-bg)] text-[var(--color-accent-primary)]/30 cursor-not-allowed'
               : 'bg-[var(--color-button-primary-bg)] hover:bg-[var(--color-button-primary-bg-hover)] text-white active:scale-95'
           }`}
-          aria-label="메시지 전송"
+          aria-label={t('aiDiagnosis.sendAria')}
         >
           {isStreaming ? (
             <LoadingSpinner size="sm" />

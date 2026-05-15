@@ -1,5 +1,8 @@
 // 앱 설정 타입 정의 + 기본값 + 유효성 교정 함수
 
+import type { Language } from '../i18n/languages';
+import { DEFAULT_LANGUAGE, isSupportedLanguage } from '../i18n/languages';
+
 // --- AI 프로바이더 타입 ---
 export type AiProvider = 'claude' | 'openai' | 'gemini' | 'local';
 
@@ -31,6 +34,8 @@ export interface AppSettings {
   localLlmEndpoint: string;
   /** 로컬 LLM 모델명 (예: qwen3-coder, llama3.2) */
   localLlmModel: string;
+  /** UI 언어 ('ko' | 'en'). 기본값 'ko'. */
+  language: Language;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -48,6 +53,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showDebugLog: false,
   localLlmEndpoint: 'http://localhost:11434',
   localLlmModel: '',
+  language: DEFAULT_LANGUAGE,
 };
 
 // 프로바이더별 기본 모델 매핑
@@ -107,12 +113,14 @@ export const AI_MODEL_OPTIONS: Record<AiProvider, string[]> = {
   local: [],
 };
 
-/** 프로바이더별 표시명 */
+/** 프로바이더별 표시명. local 라벨은 i18n 키로 노출되는 컴포넌트들이 직접 t() 로 대체하므로
+ *  여기서는 고정 문자열을 유지하되, 영문 fallback 으로 'Local LLM' 을 사용한다.
+ *  (다국어 라벨이 필요한 호출처는 `t('settings.localLlm')` 사용 권장) */
 export const AI_PROVIDER_LABELS: Record<AiProvider, string> = {
   claude: 'Claude',
   openai: 'OpenAI',
   gemini: 'Gemini',
-  local: '로컬 LLM',
+  local: 'Local LLM',
 };
 
 /** aiApiKeys 교정: 3 프로바이더 모두 string 값 보장 + 앞뒤 공백/개행 제거
@@ -203,6 +211,8 @@ export function sanitizeSettings(raw: Partial<AppSettings> & { aiApiKey?: unknow
       typeof raw.localLlmModel === 'string'
         ? raw.localLlmModel.trim()
         : DEFAULT_SETTINGS.localLlmModel,
+    // 언어 fallback: 미지원 값/타입 mismatch/누락 모두 DEFAULT_LANGUAGE 로 폴백
+    language: isSupportedLanguage(raw.language) ? raw.language : DEFAULT_LANGUAGE,
   };
 }
 

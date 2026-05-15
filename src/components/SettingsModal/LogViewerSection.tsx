@@ -1,15 +1,16 @@
 // 로그 뷰어 설정 섹션: 최대 표시 라인, ERROR 토스트, 알림음
 
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ChevronDown } from 'lucide-react';
 import { ToggleSwitch } from './ToggleSwitch';
 import type { AppSettings } from '../../types/settings';
 
-// 최대 표시 라인 옵션
-const MAX_LOG_LINES_OPTIONS: { value: AppSettings['maxLogLines']; label: string }[] = [
+// 최대 표시 라인 옵션 — 값은 코드, 라벨은 i18n 키 또는 숫자 직렬화
+const MAX_LOG_LINES_OPTIONS: { value: AppSettings['maxLogLines']; label: string; isUnlimited?: boolean }[] = [
   { value: 500, label: '500' },
   { value: 1000, label: '1,000' },
   { value: 3000, label: '3,000' },
-  { value: 0, label: '무제한' },
+  { value: 0, label: '', isUnlimited: true },
 ];
 
 interface LogViewerSectionProps {
@@ -33,17 +34,18 @@ export function LogViewerSection({
   onAlertSoundChange,
   onShowDebugLogChange,
 }: LogViewerSectionProps) {
+  const { t } = useTranslation();
   return (
     <fieldset>
       <legend className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-3">
-        로그 뷰어
+        {t('settings.logViewer')}
       </legend>
 
       <div className="space-y-4">
         {/* 최대 표시 라인 드롭다운 */}
         <div>
           <label htmlFor="settings-max-log-lines" className="block text-xs text-[var(--color-text-tertiary)] mb-1.5">
-            최대 표시 라인
+            {t('settings.maxLines')}
           </label>
           <div className="relative">
             <select
@@ -54,7 +56,7 @@ export function LogViewerSection({
             >
               {MAX_LOG_LINES_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
-                  {opt.label}
+                  {opt.isUnlimited ? t('settings.unlimited') : opt.label}
                 </option>
               ))}
             </select>
@@ -65,7 +67,7 @@ export function LogViewerSection({
             <div className="flex items-start gap-1.5 mt-1.5" role="alert" aria-live="polite">
               <AlertTriangle className="w-3.5 h-3.5 text-[var(--color-status-warn-fg)] shrink-0 mt-0.5" />
               <span className="text-xs text-[var(--color-status-warn-fg)]">
-                무제한 설정 시 대량 로그에서 메모리 사용량이 증가할 수 있습니다
+                {t('settings.unlimitedWarning')}
               </span>
             </div>
           )}
@@ -75,10 +77,10 @@ export function LogViewerSection({
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <span id="settings-error-toast-label" className="text-sm text-[var(--color-text-secondary)]">
-              ERROR 토스트
+              {t('settings.errorToast')}
             </span>
             <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
-              ERROR 로그 발생 시 토스트 알림을 표시합니다
+              {t('settings.errorToastDesc')}
             </p>
           </div>
           <ToggleSwitch
@@ -93,10 +95,10 @@ export function LogViewerSection({
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <span id="settings-alert-sound-label" className="text-sm text-[var(--color-text-secondary)]">
-              알림음
+              {t('settings.alertSound')}
             </span>
             <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
-              ERROR 로그 발생 시 알림음을 재생합니다
+              {t('settings.alertSoundDesc')}
             </p>
           </div>
           <ToggleSwitch
@@ -111,10 +113,10 @@ export function LogViewerSection({
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <span id="settings-show-debug-label" className="text-sm text-[var(--color-text-secondary)]">
-              DEBUG/TRACE 로그 표시
+              {t('settings.showDebugLog')}
             </span>
             <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
-              활성화하면 DEBUG, TRACE 레벨 로그도 목록에 표시합니다
+              {t('settings.showDebugLogDesc')}
             </p>
           </div>
           <ToggleSwitch

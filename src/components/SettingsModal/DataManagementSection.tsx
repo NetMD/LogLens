@@ -1,6 +1,7 @@
 // 설정 모달 -- 데이터 관리 섹션
 
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { ERROR_LABELS } from '../../constants/errorLabels';
 import { MAX_HISTORY_COUNT_OPTIONS } from '../../types/history';
@@ -19,13 +20,14 @@ export function DataManagementSection({
   historyCount,
   onClearHistory,
 }: DataManagementSectionProps) {
+  const { t } = useTranslation();
   const [showConfirm, setShowConfirm] = useState(false);
   const clearAllBtnRef = useRef<HTMLButtonElement>(null);
 
   return (
     <fieldset className="space-y-4">
       <legend className="text-sm font-semibold text-[var(--color-text-primary)]">
-        데이터 관리
+        {t('settings.dataManagement')}
       </legend>
 
       {/* 히스토리 최대 보관 */}
@@ -34,7 +36,7 @@ export function DataManagementSection({
           htmlFor="max-history-count"
           className="block text-xs text-[var(--color-text-secondary)] mb-1"
         >
-          히스토리 최대 보관
+          {t('settings.historyRetention')}
         </label>
         <select
           id="max-history-count"
@@ -46,12 +48,12 @@ export function DataManagementSection({
         >
           {MAX_HISTORY_COUNT_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
-              {opt}건
+              {t('common.itemCount', { count: opt })}
             </option>
           ))}
         </select>
         <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
-          분석 히스토리를 최대 {maxHistoryCount}건까지 보관합니다
+          {t('settings.historyRetentionDesc', { count: maxHistoryCount })}
         </p>
       </div>
 
@@ -59,12 +61,12 @@ export function DataManagementSection({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-[var(--color-text-secondary)]">
-            분석 히스토리
+            {t('settings.analysisHistory')}
           </p>
           <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
             {historyCount === 0
-              ? '저장된 기록이 없습니다'
-              : `현재 ${historyCount}건 저장됨`}
+              ? t('settings.noSaved')
+              : t('settings.currentSaved', { count: historyCount })}
           </p>
         </div>
         <button
@@ -74,16 +76,16 @@ export function DataManagementSection({
           disabled={historyCount === 0}
           className="text-xs text-[var(--color-status-error-fg)] hover:text-[var(--color-status-error-fg)] hover:bg-[var(--color-status-error-bg)] px-3 py-1.5 rounded-lg border border-[var(--color-status-error-border)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[var(--color-status-error-fg)]"
         >
-          전체 삭제
+          {t('settings.deleteAll')}
         </button>
       </div>
 
       {/* 전체 삭제 확인 다이얼로그 */}
       <ConfirmDialog
         open={showConfirm}
-        title="히스토리 전체 삭제"
+        title={t('history.deleteConfirmTitle')}
         description={ERROR_LABELS.HISTORY_CLEAR_CONFIRM}
-        confirmLabel="전체 삭제"
+        confirmLabel={t('settings.deleteAll')}
         destructive={true}
         onConfirm={() => {
           onClearHistory();

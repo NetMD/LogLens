@@ -1,6 +1,7 @@
 // AI 진단 화면 컨테이너 (헤더 + 3탭)
 
 import { useState, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useUiStore } from '../../store/uiStore';
 import { useDiagnosis } from '../../hooks/useDiagnosis';
 import { DiagnosisHeader } from './DiagnosisHeader';
@@ -12,6 +13,7 @@ import type { DiagnosisHistory } from '../../types/diagnosis';
 type TabType = 'unidirectional' | 'conversational' | 'history';
 
 export function DiagnosisView() {
+  const { t } = useTranslation();
   const diagnosisInput = useUiStore((s) => s.diagnosisInput);
   const diagnosisEntrySource = useUiStore((s) => s.diagnosisEntrySource);
   const diagnosisEntryAppMode = useUiStore((s) => s.diagnosisEntryAppMode);
@@ -64,9 +66,9 @@ export function DiagnosisView() {
   if (!diagnosisInput) return null;
 
   const tabs: { key: TabType; label: string }[] = [
-    { key: 'unidirectional', label: '단방향 분석' },
-    { key: 'conversational', label: '대화형 분석' },
-    { key: 'history', label: '진단 히스토리' },
+    { key: 'unidirectional', label: t('aiDiagnosis.tabUnidirectional') },
+    { key: 'conversational', label: t('aiDiagnosis.tabConversational') },
+    { key: 'history', label: t('aiDiagnosis.tabHistory') },
   ];
 
   return (
@@ -85,7 +87,7 @@ export function DiagnosisView() {
                 ? 'border-[var(--color-accent-primary)] text-[var(--color-accent-primary)]'
                 : 'border-transparent text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'
             }`}
-            aria-label={`${tab.label} 탭`}
+            aria-label={t('aiDiagnosis.tabAria', { label: tab.label })}
           >
             {tab.label}
             {tab.key === 'history' && diagnosis.histories.length > 0 && (

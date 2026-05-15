@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   Bar,
   BarChart,
@@ -10,18 +11,23 @@ import {
 } from "recharts";
 import { CHART_AUX_COLORS, CHART_LEVEL_COLORS } from "../../constants/chartColors";
 import type { TimelinePoint } from "../../utils/errorAnalyzer";
+import i18n from "../../i18n";
 
 interface Props {
   data: TimelinePoint[];
 }
 
 function formatHour(hour: string): string {
-  // "2024-01-15 14:00" → "01/15 14시"
+  // "2024-01-15 14:00" → "01/15 14시" or "01/15 14h"
   try {
     const parts = hour.split(" ");
     const dateParts = parts[0].split("-");
     const timePart = parts[1]?.slice(0, 2) ?? "00";
-    return `${dateParts[1]}/${dateParts[2]} ${timePart}시`;
+    return i18n.t('errorPattern.hourFormat', {
+      month: dateParts[1],
+      day: dateParts[2],
+      hour: timePart,
+    });
   } catch {
     return hour;
   }
@@ -36,7 +42,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <div key={p.dataKey} className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full" style={{ background: p.fill }} />
           <span className="text-[var(--color-text-secondary)]">{p.name}:</span>
-          <span className="font-medium text-[var(--color-text-primary)]">{p.value.toLocaleString()}건</span>
+          <span className="font-medium text-[var(--color-text-primary)]">
+            {i18n.t('errorPattern.tooltipCount', { count: p.value.toLocaleString() })}
+          </span>
         </div>
       ))}
     </div>
@@ -44,10 +52,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function TimelineChart({ data }: Props) {
+  const { t } = useTranslation();
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-sm text-[var(--color-text-disabled)]">
-        타임라인 데이터가 없습니다
+        {t('errorPattern.noTimeline')}
       </div>
     );
   }

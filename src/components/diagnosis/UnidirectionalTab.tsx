@@ -1,9 +1,9 @@
 // 단방향 분석 탭 (컨텍스트 선택 + 진행 + 결과)
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sparkles, AlertTriangle } from 'lucide-react';
 import type { DiagnosisPhase, UnidirectionalResult } from '../../types/diagnosis';
-import { DIAGNOSIS_PROGRESS_MESSAGES } from '../../types/diagnosis';
 import type { AiApiError } from '../../services/ai/types';
 import { AI_ERROR_MESSAGES } from '../../services/ai/types';
 import { ContextSelector } from './ContextSelector';
@@ -55,7 +55,15 @@ export function UnidirectionalTab({
   onContinueChat,
   onSave,
 }: Props) {
+  const { t, i18n } = useTranslation();
   const [scope, setScope] = useState<'selected' | 'full'>('selected');
+
+  // phase별 i18n 메시지 (UI 언어 따라감)
+  const phaseMessages: Record<string, string> = {
+    preparing: t('aiDiagnosis.phasePreparingMessage'),
+    analyzing: t('aiDiagnosis.phaseAnalyzingMessage'),
+    solving: t('aiDiagnosis.phaseSolvingMessage'),
+  };
 
   // === idle 상태: 컨텍스트 선택 + AI 진단 시작 버튼 ===
   if (phase === 'idle') {
@@ -76,11 +84,11 @@ export function UnidirectionalTab({
           {relatedHistoryCount > 0 && (
             <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] rounded-lg p-4">
               <h3 className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2">
-                이전 진단 참조
+                {t('aiDiagnosis.previousRefHeader')}
               </h3>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-[var(--color-text-secondary)]">
-                  동일 예외의 이전 진단 {relatedHistoryCount}건 발견
+                  {t('aiDiagnosis.previousRefCount', { count: relatedHistoryCount })}
                 </span>
                 <button
                   onClick={() => onToggleHistory(!includeHistory)}
@@ -89,7 +97,7 @@ export function UnidirectionalTab({
                   style={{ backgroundColor: includeHistory ? 'rgb(59 130 246)' : 'var(--color-border-default)' }}
                   role="switch"
                   aria-checked={includeHistory}
-                  aria-label="이전 진단 포함"
+                  aria-label={t('aiDiagnosis.previousRefAria')}
                 >
                   <span
                     className="inline-block h-3 w-3 transform rounded-full bg-white transition-transform"
@@ -98,7 +106,7 @@ export function UnidirectionalTab({
                 </button>
               </div>
               <p className="text-[10px] text-[var(--color-text-disabled)] mt-1">
-                최근 3건까지 이전 진단 결과를 참조합니다
+                {t('aiDiagnosis.previousRefDesc')}
               </p>
             </div>
           )}
@@ -109,10 +117,10 @@ export function UnidirectionalTab({
               onClick={() => onStartDiagnosis(scope)}
               disabled={!canStartDiagnosis || (scope === 'full' && isPayloadTooLarge)}
               className="flex items-center gap-2 bg-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)] text-white rounded-lg px-6 py-2.5 text-sm transition-colors shadow-lg shadow-purple-900/30 disabled:bg-[var(--color-accent-primary-subtle-bg)] disabled:text-[var(--color-accent-primary)]/50 disabled:cursor-not-allowed disabled:shadow-none"
-              aria-label="AI 진단 시작"
+              aria-label={t('aiDiagnosis.startDiagnosis')}
             >
               <Sparkles className="w-4 h-4" />
-              AI 진단 시작
+              {t('aiDiagnosis.startDiagnosis')}
             </button>
           </div>
         </div>
@@ -122,7 +130,7 @@ export function UnidirectionalTab({
 
   // === 분석 중 (preparing/analyzing/solving) ===
   if (phase === 'preparing' || phase === 'analyzing' || phase === 'solving') {
-    const message = DIAGNOSIS_PROGRESS_MESSAGES[phase] ?? '분석 중...';
+    const message = phaseMessages[phase] ?? t('aiDiagnosis.diagnosing');
 
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -149,9 +157,9 @@ export function UnidirectionalTab({
             <button
               onClick={onCancelDiagnosis}
               className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-status-error-fg)] underline transition-colors"
-              aria-label="분석 취소"
+              aria-label={t('aiDiagnosis.cancelAria')}
             >
-              취소
+              {t('aiDiagnosis.cancel')}
             </button>
           </div>
         </div>
@@ -161,7 +169,9 @@ export function UnidirectionalTab({
 
   // === 에러 상태 ===
   if (phase === 'error' && error) {
-    const errorMessage = AI_ERROR_MESSAGES[error.type]?.ko ?? error.message;
+    // AI_ERROR_MESSAGES 는 ko/en 2-key 구조 — 현재 UI 언어로 분기
+    const lang = i18n.language === 'en' ? 'en' : 'ko';
+    const errorMessage = AI_ERROR_MESSAGES[error.type]?.[lang] ?? error.message;
 
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -170,7 +180,7 @@ export function UnidirectionalTab({
             <AlertTriangle className="w-6 h-6 text-[var(--color-status-error-fg)]" />
           </div>
           <p className="text-sm font-medium text-[var(--color-text-primary)]">
-            AI 분석에 실패했습니다
+            {t('aiDiagnosis.analysisFailed')}
           </p>
           <p className="text-xs text-[var(--color-text-tertiary)]">
             {errorMessage}
@@ -180,16 +190,16 @@ export function UnidirectionalTab({
               onClick={() => onRetryDiagnosis()}
               disabled={!canStartDiagnosis}
               className="px-4 py-2 text-xs bg-[var(--color-button-primary-bg)] hover:bg-[var(--color-button-primary-bg-hover)] text-white rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="재시도"
+              aria-label={t('aiDiagnosis.retry')}
             >
-              재시도
+              {t('aiDiagnosis.retry')}
             </button>
             <button
               onClick={onCancelDiagnosis}
               className="px-4 py-2 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] rounded-lg transition-colors"
-              aria-label="닫기"
+              aria-label={t('aiDiagnosis.errorClose')}
             >
-              닫기
+              {t('aiDiagnosis.errorClose')}
             </button>
           </div>
         </div>
@@ -204,7 +214,7 @@ export function UnidirectionalTab({
         {phase === 'partial' && (
           <div className="max-w-3xl mx-auto mb-4 bg-[var(--color-status-warn-bg)] border border-[var(--color-status-warn-border)] rounded-lg px-3 py-2">
             <p className="text-xs text-[var(--color-status-warn-fg)]">
-              응답이 불완전합니다. 네트워크 연결을 확인해주세요.
+              {t('aiDiagnosis.incompleteResponse')}
             </p>
           </div>
         )}

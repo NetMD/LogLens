@@ -1,4 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "./i18n";
+import { isSupportedLanguage } from "./i18n/languages";
 import { useLogStore } from "./store/logStore";
 import { useUiStore } from "./store/uiStore";
 import { useSettingsStore } from "./store/settingsStore";
@@ -43,8 +46,25 @@ function App() {
   const theme = useSettingsStore((s) => s.theme);
   const fontFamily = useSettingsStore((s) => s.fontFamily);
   const fontSize = useSettingsStore((s) => s.fontSize);
+  const language = useSettingsStore((s) => s.language);
   const settingsInitialized = useSettingsStore((s) => s._initialized);
   const { load: loadSettings } = useSettings();
+
+  // i18nReady 가드 상태: i18next init() 완료 여부 추적
+  // (init() 은 inline resources 라 마운트 시점에 동기 true 인 경우가 대부분이지만
+  //  React 18 StrictMode 더블 effect 와 비동기 init 가능성 대비 가드)
+  const [i18nReady, setI18nReady] = useState<boolean>(i18n.isInitialized);
+  useEffect(() => {
+    if (i18n.isInitialized) {
+      setI18nReady(true);
+      return;
+    }
+    const onInit = () => setI18nReady(true);
+    i18n.on("initialized", onInit);
+    return () => {
+      i18n.off("initialized", onInit);
+    };
+  }, []);
   const { load: loadHistory } = useHistory();
   const { load: loadAiReportHistory } = useAiReportHistory();
 
@@ -99,12 +119,35 @@ function App() {
     root.style.setProperty('--log-font-size', `${fontSize}px`);
   }, [fontFamily, fontSize]);
 
+  // 부팅 시점에 한 번 settingsStore.language 와 i18n.language 동기화
+  // (R12 설계서 §2.6 / §4 — 본 effect 는 단일 위임 함수 setLanguage() 와는
+  //  별개의 부팅 동기화 경로. 다른 어떤 곳에서도 i18n.changeLanguage 를
+  //  직접 호출하면 회귀로 간주한다.)
+  // 또한 settingsStore.language 가 외부에서 변경된 경우에도 i18n 에 통보.
+  useEffect(() => {
+    if (!settingsInitialized) return;
+    if (!isSupportedLanguage(language)) return;
+    if (i18n.language === language) return;
+    void i18n.changeLanguage(language);
+  }, [language, settingsInitialized]);
+
+  // <html lang="..."> 동기화 — 스크린리더 발음/타이포그래피에 영향
+  useEffect(() => {
+    if (isSupportedLanguage(language)) {
+      document.documentElement.lang = language;
+    }
+  }, [language]);
+
   // 실시간 감시 모드의 에러 패턴 갱신 (live + !liveLog)
   useLiveErrorAnalysis();
 
   const hasData = entriesLength > 0 || isParsing;
   const isWatchActive = watchMode === "watching" || watchMode === "starting";
   const showContent = hasData || isWatchActive || activeToolTab !== null;
+
+  // i18nReady 는 children (SettingsModal 등) 이 i18n.isInitialized 를 직접
+  // 참조하므로 본 컴포넌트에서는 effect 로 추적만 한다. lint 회피 참조:
+  void i18nReady;
 
   return (
     <MainLayout>
@@ -186,6 +229,7 @@ function renderMainContent(ctx: RenderCtx) {
 
 // 파일 모드 전용 탭 헤더
 function TabHeader() {
+  const { t } = useTranslation();
   const mainView = useUiStore((s) => s.mainView);
   const appMode = useUiStore((s) => s.appMode);
   const requestModeChange = useUiStore((s) => s.requestModeChange);
@@ -193,9 +237,9 @@ function TabHeader() {
 
   // 실시간 모드: 실시간 로그 탭 추가
   const tabs: { view: MainView; label: string }[] = [
-    ...(appMode === "live" ? [{ view: "liveLog" as MainView, label: "실시간 로그" }] : []),
-    { view: "stacktrace", label: "스택트레이스" },
-    { view: "errorPattern", label: "에러 패턴" },
+    ...(appMode === "live" ? [{ view: "liveLog" as MainView, label: t("sidebar.realtimeLog") }] : []),
+    { view: "stacktrace", label: t("sidebar.stackTrace") },
+    { view: "errorPattern", label: t("sidebar.errorPattern") },
   ];
 
   return (

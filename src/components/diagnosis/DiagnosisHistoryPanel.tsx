@@ -2,6 +2,7 @@
 
 import { X, History } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { DiagnosisHistory } from '../../types/diagnosis';
 import { SeverityBadge } from './SeverityBadge';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
@@ -24,6 +25,7 @@ export function DiagnosisHistoryPanel({
   onClose,
   isOpen,
 }: Props) {
+  const { t, i18n } = useTranslation();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
 
@@ -53,21 +55,21 @@ export function DiagnosisHistoryPanel({
 
         {/* 헤더 */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border-default)]">
-          <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">진단 히스토리</h2>
+          <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">{t('aiDiagnosis.historyTitle')}</h2>
           <div className="flex items-center gap-2">
             {histories.length > 0 && (
               <button
                 onClick={() => setConfirmClearAll(true)}
                 className="text-xs text-[var(--color-status-error-fg)] hover:text-[var(--color-status-error-fg)] transition-colors"
-                aria-label="전체 삭제"
+                aria-label={t('aiDiagnosis.deleteAllAria')}
               >
-                전체 삭제
+                {t('aiDiagnosis.deleteAll')}
               </button>
             )}
             <button
               onClick={onClose}
               className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-colors"
-              aria-label="닫기"
+              aria-label={t('aiDiagnosis.historyClose')}
             >
               <X className="w-4 h-4" />
             </button>
@@ -79,12 +81,13 @@ export function DiagnosisHistoryPanel({
           {histories.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
               <History className="w-8 h-8 text-[var(--color-text-disabled)]" />
-              <p className="text-xs text-[var(--color-text-disabled)]">저장된 진단 기록이 없습니다</p>
+              <p className="text-xs text-[var(--color-text-disabled)]">{t('aiDiagnosis.noHistoryShort')}</p>
             </div>
           ) : (
             histories.map((history) => {
               const providerLabel = AI_PROVIDER_LABELS[history.provider] ?? history.provider;
-              const date = new Date(history.savedAt).toLocaleString('ko-KR', {
+              const locale = i18n.language === 'en' ? 'en-US' : 'ko-KR';
+              const date = new Date(history.savedAt).toLocaleString(locale, {
                 month: '2-digit',
                 day: '2-digit',
                 hour: '2-digit',
@@ -110,7 +113,7 @@ export function DiagnosisHistoryPanel({
                       {history.exceptionClass}
                     </span>
                     <span className="text-[10px] text-[var(--color-text-disabled)] flex-shrink-0">
-                      {history.tokensUsed.toLocaleString()} 토큰
+                      {t('aiDiagnosis.tokensUnit', { count: history.tokensUsed.toLocaleString() })}
                       {history.estimatedCost > 0 && ` ~$${history.estimatedCost.toFixed(4)}`}
                     </span>
                   </div>
@@ -124,13 +127,13 @@ export function DiagnosisHistoryPanel({
                         onClick={() => onView(history)}
                         className="text-xs text-[var(--color-accent-primary)] hover:underline"
                       >
-                        보기
+                        {t('aiDiagnosis.view')}
                       </button>
                       <button
                         onClick={() => setConfirmDelete(history.id)}
                         className="text-xs text-[var(--color-status-error-fg)] hover:underline"
                       >
-                        삭제
+                        {t('aiDiagnosis.delete')}
                       </button>
                     </div>
                   </div>
@@ -144,10 +147,10 @@ export function DiagnosisHistoryPanel({
       {/* 개별 삭제 확인 */}
       <ConfirmDialog
         open={confirmDelete !== null}
-        title="진단 기록 삭제"
-        description="이 진단 기록을 삭제하시겠습니까?"
-        confirmLabel="삭제"
-        cancelLabel="취소"
+        title={t('aiDiagnosis.historyDeleteOneTitle')}
+        description={t('aiDiagnosis.historyDeleteOneDesc')}
+        confirmLabel={t('aiDiagnosis.delete')}
+        cancelLabel={t('aiDiagnosis.cancel')}
         destructive
         onConfirm={async () => {
           if (confirmDelete) {
@@ -161,10 +164,10 @@ export function DiagnosisHistoryPanel({
       {/* 전체 삭제 확인 */}
       <ConfirmDialog
         open={confirmClearAll}
-        title="전체 진단 기록 삭제"
-        description="모든 진단 기록을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
-        confirmLabel="전체 삭제"
-        cancelLabel="취소"
+        title={t('aiDiagnosis.historyDeleteAllTitle')}
+        description={t('aiDiagnosis.historyDeleteAllDesc')}
+        confirmLabel={t('aiDiagnosis.deleteAll')}
+        cancelLabel={t('aiDiagnosis.cancel')}
         destructive
         onConfirm={async () => {
           await onClearAll();

@@ -1,6 +1,7 @@
 // 히스토리 상세 조회 패널
 
 import { ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { HistoryEntry } from '../../types/history';
 import type { LogLevel } from '../../utils/logParser';
 
@@ -27,10 +28,10 @@ function formatDetailDate(isoString: string): string {
   return `${y}-${m}-${d} ${h}:${min}`;
 }
 
-// 레벨별 카드 색상 (SummaryCards.tsx와 동일 체계)
+// 레벨별 카드 색상 (SummaryCards.tsx와 동일 체계). label 은 i18n 키 문자열.
 const LEVEL_CARDS: {
   level: 'TOTAL' | LogLevel;
-  label: string;
+  labelKey: string;
   bg: string;
   border: string;
   text: string;
@@ -38,7 +39,7 @@ const LEVEL_CARDS: {
 }[] = [
   {
     level: 'TOTAL',
-    label: '전체',
+    labelKey: 'errorPattern.totalLogs',
     bg: 'bg-[var(--color-bg-elevated)]',
     border: 'border-[var(--color-border-default)]',
     text: 'text-[var(--color-text-tertiary)]',
@@ -46,7 +47,7 @@ const LEVEL_CARDS: {
   },
   {
     level: 'ERROR',
-    label: '에러',
+    labelKey: 'errorPattern.errors',
     bg: 'bg-[var(--color-status-error-bg)] dark:bg-[var(--color-status-error-bg)]',
     border: 'border-[var(--color-status-error-border)] dark:border-[var(--color-status-error-border)]',
     text: 'text-[var(--color-status-error-fg)] dark:text-[var(--color-status-error-fg)]',
@@ -54,7 +55,7 @@ const LEVEL_CARDS: {
   },
   {
     level: 'WARN',
-    label: '경고',
+    labelKey: 'errorPattern.warnings',
     bg: 'bg-[var(--color-status-warn-bg)] bg-[var(--color-status-warn-bg)]',
     border: 'border-[var(--color-status-warn-border)] dark:border-[var(--color-status-warn-border)]',
     text: 'text-[var(--color-status-warn-fg)] dark:text-[var(--color-status-warn-fg)]',
@@ -62,7 +63,7 @@ const LEVEL_CARDS: {
   },
   {
     level: 'INFO',
-    label: '정보',
+    labelKey: 'errorPattern.info',
     bg: 'bg-[var(--color-accent-primary-subtle-bg)] dark:bg-[var(--color-accent-primary-subtle-bg)]/30',
     border: 'border-[var(--color-accent-primary)] dark:border-[var(--color-accent-primary)]',
     text: 'text-[var(--color-accent-primary)] dark:text-[var(--color-accent-primary)]',
@@ -70,7 +71,7 @@ const LEVEL_CARDS: {
   },
   {
     level: 'DEBUG',
-    label: '디버그',
+    labelKey: 'errorPattern.debug',
     bg: 'bg-[var(--color-bg-elevated)]',
     border: 'border-[var(--color-border-default)]',
     text: 'text-[var(--color-text-tertiary)]',
@@ -78,7 +79,7 @@ const LEVEL_CARDS: {
   },
   {
     level: 'TRACE',
-    label: '트레이스',
+    labelKey: 'errorPattern.trace',
     bg: 'bg-[var(--color-bg-elevated)]',
     border: 'border-[var(--color-border-default)]',
     text: 'text-[var(--color-text-tertiary)]',
@@ -87,6 +88,7 @@ const LEVEL_CARDS: {
 ];
 
 export function HistoryDetail({ entry, onBack }: HistoryDetailProps) {
+  const { t } = useTranslation();
   const { summary } = entry;
   const { topErrors } = summary;
   const maxCount = topErrors.length > 0 ? topErrors[0].count : 0;
@@ -100,12 +102,12 @@ export function HistoryDetail({ entry, onBack }: HistoryDetailProps) {
             type="button"
             onClick={onBack}
             className="p-1 rounded-lg text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none"
-            aria-label="히스토리 목록으로 돌아가기"
+            aria-label={t('history.back')}
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h2 className="text-base font-semibold text-[var(--color-text-primary)]">
-            {entry.fileName} 분석 결과
+            {t('history.analysisOf', { name: entry.fileName })}
           </h2>
         </div>
 
@@ -113,28 +115,28 @@ export function HistoryDetail({ entry, onBack }: HistoryDetailProps) {
         <div className="bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] rounded-lg px-4 py-3 mb-4">
           <div className="grid grid-cols-2 gap-x-6 gap-y-2">
             <div>
-              <span className="text-xs text-[var(--color-text-tertiary)]">파일명</span>
+              <span className="text-xs text-[var(--color-text-tertiary)]">{t('history.fileNameLabel')}</span>
               <p className="text-sm text-[var(--color-text-secondary)] font-mono truncate" title={entry.fileName}>
                 {entry.fileName}
               </p>
             </div>
             <div>
-              <span className="text-xs text-[var(--color-text-tertiary)]">분석일시</span>
+              <span className="text-xs text-[var(--color-text-tertiary)]">{t('history.analyzedAt')}</span>
               <p className="text-sm text-[var(--color-text-secondary)]">
                 {formatDetailDate(entry.analyzedAt)}
               </p>
             </div>
             <div>
-              <span className="text-xs text-[var(--color-text-tertiary)]">파일 크기</span>
+              <span className="text-xs text-[var(--color-text-tertiary)]">{t('history.fileSize')}</span>
               <p className="text-sm text-[var(--color-text-secondary)]">
                 {formatFileSize(entry.fileSize)}
               </p>
             </div>
             {summary.parseFailCount > 0 && (
               <div>
-                <span className="text-xs text-[var(--color-text-tertiary)]">파싱 실패</span>
+                <span className="text-xs text-[var(--color-text-tertiary)]">{t('history.parseFail')}</span>
                 <p className="text-xs text-[var(--color-text-disabled)]">
-                  {summary.parseFailCount.toLocaleString()}건
+                  {t('errorPattern.countItems', { count: summary.parseFailCount.toLocaleString() })}
                 </p>
               </div>
             )}
@@ -143,13 +145,13 @@ export function HistoryDetail({ entry, onBack }: HistoryDetailProps) {
 
         {/* 레벨별 카운트 카드 */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          {LEVEL_CARDS.map(({ level, label, bg, border, text, countText }) => {
+          {LEVEL_CARDS.map(({ level, labelKey, bg, border, text, countText }) => {
             const count = level === 'TOTAL'
               ? summary.totalEntries
               : (summary.levelCounts[level] ?? 0);
             return (
               <div key={level} className={`${bg} border ${border} rounded-lg px-4 py-3`}>
-                <p className={`text-xs ${text}`}>{label}</p>
+                <p className={`text-xs ${text}`}>{t(labelKey)}</p>
                 <p className={`text-xl font-bold ${countText} mt-1`}>
                   {count.toLocaleString()}
                 </p>
@@ -161,11 +163,11 @@ export function HistoryDetail({ entry, onBack }: HistoryDetailProps) {
         {/* Top 예외 목록 */}
         <div>
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
-            Top 예외
+            {t('history.topExceptions')}
           </h3>
           {topErrors.length === 0 ? (
             <div className="text-sm text-[var(--color-text-disabled)] py-6 text-center">
-              감지된 예외가 없습니다
+              {t('history.noExceptions')}
             </div>
           ) : (
             <div className="space-y-2">
@@ -186,7 +188,7 @@ export function HistoryDetail({ entry, onBack }: HistoryDetailProps) {
                         {err.exceptionClass.split('.').pop()}
                       </span>
                       <span className="flex-shrink-0 text-xs text-[var(--color-text-tertiary)] font-medium">
-                        {err.count.toLocaleString()}건
+                        {t('errorPattern.countItems', { count: err.count.toLocaleString() })}
                       </span>
                     </div>
                     <div className="mt-1 h-1 bg-[var(--color-border-default)] rounded-full overflow-hidden">

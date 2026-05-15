@@ -2,6 +2,7 @@
 
 import { MessageSquare, Save, RefreshCw, Check } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { UnidirectionalResult } from '../../types/diagnosis';
 import { SeverityBadge } from './SeverityBadge';
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -49,6 +50,7 @@ export function DiagnosisResult({
   canStartDiagnosis,
   isAnalyzing,
 }: Props) {
+  const { t } = useTranslation();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -71,7 +73,7 @@ export function DiagnosisResult({
         <style>{CARD_ANIMATION_STYLE}</style>
         <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] rounded-lg p-4">
           <p className="text-xs text-[var(--color-status-warn-fg)] mb-2">
-            구조화된 분석에 실패했습니다. 대화형으로 추가 질문해보세요.
+            {t('aiDiagnosis.unstructuredFallback')}
           </p>
           <pre className="text-sm text-[var(--color-text-primary)] whitespace-pre-wrap leading-relaxed font-mono text-xs">
             {rawResponse}
@@ -83,19 +85,19 @@ export function DiagnosisResult({
           <button
             onClick={onContinueChat}
             className="flex items-center gap-1.5 bg-[var(--color-button-primary-bg)] hover:bg-[var(--color-button-primary-bg-hover)] text-white rounded-lg px-4 py-2 text-xs transition-colors"
-            aria-label="대화형으로 이어서 분석"
+            aria-label={t('aiDiagnosis.continueChatAria')}
           >
             <MessageSquare className="w-3.5 h-3.5" />
-            대화형으로 이어서
+            {t('aiDiagnosis.continueChat')}
           </button>
           <button
             onClick={onRetry}
             disabled={!canStartDiagnosis}
             className="flex items-center gap-1.5 bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] border border-[var(--color-border-default)] rounded-lg px-4 py-2 text-xs transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            aria-label="재분석"
+            aria-label={t('aiDiagnosis.reanalyzeAria')}
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            재분석
+            {t('aiDiagnosis.reanalyze')}
           </button>
         </div>
       </div>
@@ -114,12 +116,16 @@ export function DiagnosisResult({
         style={{ animation: 'cardAppear 300ms ease-out forwards', animationDelay: '0ms' }}
       >
         <h3 className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2">
-          심각도
+          {t('aiDiagnosis.severityCardHeader')}
         </h3>
         <div className="flex items-center gap-2 mb-2">
           <SeverityBadge severity={result.severity} />
           <span className="text-sm text-[var(--color-text-primary)]">
-            {result.severity === 'HIGH' ? '높은 심각도' : result.severity === 'MEDIUM' ? '보통 심각도' : '낮은 심각도'}
+            {result.severity === 'HIGH'
+              ? t('aiDiagnosis.severityHigh')
+              : result.severity === 'MEDIUM'
+                ? t('aiDiagnosis.severityMedium')
+                : t('aiDiagnosis.severityLow')}
           </span>
         </div>
         {result.severityReason && (
@@ -136,7 +142,7 @@ export function DiagnosisResult({
           style={{ animation: 'cardAppear 300ms ease-out forwards', animationDelay: '100ms', opacity: 0 }}
         >
           <h3 className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2">
-            근본 원인
+            {t('aiDiagnosis.rootCauseHeader')}
           </h3>
           <p className="text-sm text-[var(--color-text-primary)] leading-relaxed">
             {result.rootCause}
@@ -148,9 +154,9 @@ export function DiagnosisResult({
           style={{ animation: 'cardAppear 300ms ease-out forwards', animationDelay: '100ms', opacity: 0 }}
         >
           <h3 className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2">
-            근본 원인
+            {t('aiDiagnosis.rootCauseHeader')}
           </h3>
-          <p className="text-xs text-[var(--color-text-disabled)]">AI가 이 항목을 분석하지 못했습니다</p>
+          <p className="text-xs text-[var(--color-text-disabled)]">{t('aiDiagnosis.aiCouldNotAnalyze')}</p>
         </div>
       )}
 
@@ -161,7 +167,7 @@ export function DiagnosisResult({
           style={{ animation: 'cardAppear 300ms ease-out forwards', animationDelay: '200ms', opacity: 0 }}
         >
           <h3 className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2">
-            해결 방법
+            {t('aiDiagnosis.solutionHeader')}
           </h3>
           <p className="text-sm text-[var(--color-text-primary)] leading-relaxed mb-3">
             {result.solution.description}
@@ -201,9 +207,9 @@ export function DiagnosisResult({
           style={{ animation: 'cardAppear 300ms ease-out forwards', animationDelay: '200ms', opacity: 0 }}
         >
           <h3 className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2">
-            해결 방법
+            {t('aiDiagnosis.solutionHeader')}
           </h3>
-          <p className="text-xs text-[var(--color-text-disabled)]">AI가 이 항목을 분석하지 못했습니다</p>
+          <p className="text-xs text-[var(--color-text-disabled)]">{t('aiDiagnosis.aiCouldNotAnalyze')}</p>
         </div>
       )}
 
@@ -214,7 +220,7 @@ export function DiagnosisResult({
           style={{ animation: 'cardAppear 300ms ease-out forwards', animationDelay: '300ms', opacity: 0 }}
         >
           <h3 className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2">
-            재발 방지
+            {t('aiDiagnosis.preventionHeader')}
           </h3>
           <ol className="space-y-1.5">
             {result.prevention.map((item, i) => (
@@ -231,9 +237,9 @@ export function DiagnosisResult({
           style={{ animation: 'cardAppear 300ms ease-out forwards', animationDelay: '300ms', opacity: 0 }}
         >
           <h3 className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2">
-            재발 방지
+            {t('aiDiagnosis.preventionHeader')}
           </h3>
-          <p className="text-xs text-[var(--color-text-disabled)]">AI가 이 항목을 분석하지 못했습니다</p>
+          <p className="text-xs text-[var(--color-text-disabled)]">{t('aiDiagnosis.aiCouldNotAnalyze')}</p>
         </div>
       )}
 
@@ -244,7 +250,7 @@ export function DiagnosisResult({
           style={{ animation: 'cardAppear 300ms ease-out forwards', animationDelay: '400ms', opacity: 0 }}
         >
           <h3 className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2">
-            연관 에러
+            {t('aiDiagnosis.relatedErrorsHeader')}
           </h3>
           <ul className="space-y-2">
             {result.relatedErrors.map((err, i) => (
@@ -262,9 +268,9 @@ export function DiagnosisResult({
           style={{ animation: 'cardAppear 300ms ease-out forwards', animationDelay: '400ms', opacity: 0 }}
         >
           <h3 className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-2">
-            연관 에러
+            {t('aiDiagnosis.relatedErrorsHeader')}
           </h3>
-          <p className="text-xs text-[var(--color-text-disabled)]">AI가 이 항목을 분석하지 못했습니다</p>
+          <p className="text-xs text-[var(--color-text-disabled)]">{t('aiDiagnosis.aiCouldNotAnalyze')}</p>
         </div>
       )}
 
@@ -274,10 +280,10 @@ export function DiagnosisResult({
           onClick={onContinueChat}
           disabled={isAnalyzing}
           className="flex items-center gap-1.5 bg-[var(--color-button-primary-bg)] hover:bg-[var(--color-button-primary-bg-hover)] text-white rounded-lg px-4 py-2 text-xs transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          aria-label="대화형으로 이어서 분석"
+          aria-label={t('aiDiagnosis.continueChatAria')}
         >
           <MessageSquare className="w-3.5 h-3.5" />
-          대화형으로 이어서
+          {t('aiDiagnosis.continueChat')}
         </button>
         <button
           onClick={handleSave}
@@ -285,19 +291,19 @@ export function DiagnosisResult({
           className={`flex items-center gap-1.5 bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] border border-[var(--color-border-default)] rounded-lg px-4 py-2 text-xs transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
             saved ? 'text-[var(--color-status-success-fg)]' : ''
           }`}
-          aria-label="진단 저장"
+          aria-label={t('aiDiagnosis.saveDiagnosisAria')}
         >
           {saved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
-          {saved ? '저장 완료' : '진단 저장'}
+          {saved ? t('aiDiagnosis.saveComplete') : t('aiDiagnosis.saveDiagnosis')}
         </button>
         <button
           onClick={onRetry}
           disabled={!canStartDiagnosis}
           className="flex items-center gap-1.5 bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] border border-[var(--color-border-default)] rounded-lg px-4 py-2 text-xs transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          aria-label="재분석"
+          aria-label={t('aiDiagnosis.reanalyzeAria')}
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          재분석
+          {t('aiDiagnosis.reanalyze')}
         </button>
       </div>
     </div>

@@ -2,6 +2,7 @@
 // 체크박스 + A/B 배지 + 비교 선택 지원
 
 import { forwardRef } from "react";
+import { useTranslation } from "react-i18next";
 import { FileDown, Trash2 } from "lucide-react";
 import type { HistoryEntry } from "../../types/history";
 
@@ -40,6 +41,7 @@ export const HistoryRow = forwardRef<HTMLTableRowElement, HistoryRowProps>(
     { entry, onSelect, onDelete, onExportPdf, selectionOrder, canCheck, onToggleCheck, isMaxSelected },
     ref
   ) {
+    const { t } = useTranslation();
     const errorCount = entry.summary.levelCounts.ERROR ?? 0;
     const warnCount = entry.summary.levelCounts.WARN ?? 0;
     const isChecked = selectionOrder !== null;
@@ -108,7 +110,7 @@ export const HistoryRow = forwardRef<HTMLTableRowElement, HistoryRowProps>(
               type="button"
               role="checkbox"
               aria-checked={isChecked}
-              aria-label={`비교 선택: ${entry.fileName}`}
+              aria-label={t('history.compareSelectAria', { name: entry.fileName })}
               onClick={handleCheckboxClick}
               onKeyDown={handleCheckboxKeyDown}
               disabled={!canCheck}
@@ -185,8 +187,8 @@ export const HistoryRow = forwardRef<HTMLTableRowElement, HistoryRowProps>(
           <div className="flex items-center justify-end gap-1">
             <button
               type="button"
-              aria-label={`PDF로 내보내기: ${entry.fileName}`}
-              title="PDF로 내보내기"
+              aria-label={t('history.exportPdfAria', { name: entry.fileName })}
+              title={t('history.exportPdfTitle')}
               onClick={handleExportPdf}
               onKeyDown={handleExportPdfKeyDown}
               className="p-1 rounded opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[var(--color-text-disabled)] hover:text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary-subtle-bg)]/30 focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none transition-opacity transition-colors"
@@ -195,7 +197,7 @@ export const HistoryRow = forwardRef<HTMLTableRowElement, HistoryRowProps>(
             </button>
             <button
               type="button"
-              aria-label={`히스토리 항목 삭제: ${entry.fileName}`}
+              aria-label={t('history.deleteAria', { name: entry.fileName })}
               onClick={handleDelete}
               onKeyDown={handleDeleteKeyDown}
               className="p-1 rounded opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[var(--color-text-disabled)] hover:text-[var(--color-status-error-fg)] hover:bg-[var(--color-status-error-bg)] focus-visible:ring-2 focus-visible:ring-[var(--color-status-error-border)] focus-visible:outline-none transition-opacity transition-colors"

@@ -1,16 +1,20 @@
+import { useTranslation } from "react-i18next";
 import { useLogStore } from "../../store/logStore";
 import { SummaryCards } from "./SummaryCards";
 import { TimelineChart } from "./TimelineChart";
 import { TopErrorList } from "./TopErrorList";
 
 export function ErrorPatternView() {
+  // [큐레이터 제약 P0] t() 호출은 컴포넌트 최상단에서만. useMemo deps 에는 t 자체도 포함 금지.
+  // (현재 본 컴포넌트는 useMemo 가 없지만, 회귀 방지 주석을 명시한다.)
+  const { t } = useTranslation();
   // selector 분리 — store 의 다른 필드(progress, entries 등) 변경으로 인한 리렌더 차단
   const analysis = useLogStore((s) => s.analysis);
 
   if (!analysis) {
     return (
       <div className="flex items-center justify-center h-full text-sm text-[var(--color-text-disabled)]">
-        분석 결과가 없습니다
+        {t('errorPattern.noAnalysis')}
       </div>
     );
   }
@@ -21,7 +25,9 @@ export function ErrorPatternView() {
 
       {/* 시간대별 분포 */}
       <section>
-        <h3 className="text-sm font-medium text-[var(--color-text-tertiary)] mb-3">시간대별 로그 분포</h3>
+        <h3 className="text-sm font-medium text-[var(--color-text-tertiary)] mb-3">
+          {t('errorPattern.hourlyDistribution')}
+        </h3>
         <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] rounded-lg p-4">
           <TimelineChart data={analysis.timeline} />
         </div>
@@ -30,9 +36,9 @@ export function ErrorPatternView() {
       {/* Top N 에러 (스택트레이스 포함된 예외 유형 기준) */}
       <section>
         <h3 className="text-sm font-medium text-[var(--color-text-tertiary)] mb-3">
-          Top {analysis.topErrors.length} 에러
+          {t('errorPattern.topErrorsHeader', { count: analysis.topErrors.length })}
           <span className="ml-2 text-xs text-[var(--color-text-disabled)] font-normal">
-            스택트레이스가 포함된 에러 유형 · 클릭하면 해당 스택트레이스로 이동
+            {t('errorPattern.topErrorsDesc')}
           </span>
         </h3>
         <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] rounded-lg p-3">

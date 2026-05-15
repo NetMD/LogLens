@@ -2,6 +2,7 @@
 // Props: 없음 (store 직접 구독)
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FileSearch, AlertCircle } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { useExportStore } from '../../store/exportStore';
@@ -11,14 +12,12 @@ import { BasicPdfTab } from './BasicPdfTab';
 import { AiReportTab } from './AiReportTab';
 import { ProgressBar } from '../LogDropZone/ProgressBar';
 
-// 탭 정의
-const TABS = [
-  { key: 'basic' as const, label: '기본 PDF' },
-  { key: 'ai' as const, label: 'AI 리포트' },
-];
+// 탭 정의 (i18n 라벨은 컴포넌트 안에서 t() 로 해석)
+const TAB_KEYS = ['basic', 'ai'] as const;
 
 /** ExportView 내부 전용 드롭존 -- loadFile 시 activeToolTab='export' 유지 */
 function ExportDropZone() {
+  const { t } = useTranslation();
   const { loadFile } = useLogFile();
   const setIsFromHistory = useExportStore((s) => s.setIsFromHistory);
   const [isDragging, setIsDragging] = useState(false);
@@ -83,7 +82,7 @@ function ExportDropZone() {
       <div
         role="button"
         tabIndex={0}
-        aria-label="분석할 로그 파일 선택"
+        aria-label={t('pdf.ariaLabelDropzone')}
         onClick={handleOpen}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -113,10 +112,10 @@ function ExportDropZone() {
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium text-[var(--color-text-primary)]">
-              {isDragging ? '파일을 놓으세요' : '분석할 로그 파일을 드래그하거나 클릭하세요'}
+              {isDragging ? t('pdf.dropzoneDrop') : t('pdf.dropzoneLabel')}
             </p>
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              Spring Boot / MVC 로그 파일 (.log, .txt, .csv) — 최대 500MB
+              {t('pdf.dropzoneDesc')}
             </p>
           </div>
           {!isDragging && (
@@ -128,7 +127,7 @@ function ExportDropZone() {
               }}
               className="mt-1 px-4 py-1.5 rounded-md text-sm font-medium border bg-[var(--color-button-primary-bg)] hover:bg-[var(--color-button-primary-bg)] border-[var(--color-accent-primary)] text-white motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)]"
             >
-              파일 선택
+              {t('pdf.selectFile')}
             </button>
           )}
         </div>
@@ -144,6 +143,7 @@ function ExportDropZone() {
 }
 
 export function ExportView() {
+  const { t } = useTranslation();
   const activeTab = useExportStore((s) => s.activeTab);
   const setActiveTab = useExportStore((s) => s.setActiveTab);
   const title = useExportStore((s) => s.title);
@@ -158,7 +158,8 @@ export function ExportView() {
   useEffect(() => {
     if (title === '' && fileName) {
       const today = new Date().toISOString().slice(0, 10);
-      setTitle(`${fileName} 분석 리포트 - ${today}`);
+      // 파일명 + 날짜만으로 기본 제목 구성 (분석 리포트 라벨은 t() 로 노출 위치에서 처리)
+      setTitle(`${fileName} - ${today}`);
     }
   }, [title, fileName, setTitle]);
 
@@ -167,7 +168,7 @@ export function ExportView() {
     return (
       <div className="flex-1 overflow-auto p-6">
         <h1 className="text-base font-semibold text-[var(--color-text-primary)]">
-          PDF 내보내기
+          {t('pdf.headerTitle')}
         </h1>
         <div className="mt-10 flex items-center justify-center">
           <ProgressBar progress={progress} fileName={fileName ?? ''} />
@@ -181,10 +182,10 @@ export function ExportView() {
     return (
       <div className="flex-1 overflow-auto p-6">
         <h1 className="text-base font-semibold text-[var(--color-text-primary)]">
-          PDF 내보내기
+          {t('pdf.headerTitle')}
         </h1>
         <p className="text-sm text-[var(--color-text-tertiary)] mt-1">
-          로그 파일을 선택하면 분석 후 내보내기 화면으로 이동합니다.
+          {t('pdf.introWhenEmpty')}
         </p>
         <div className="max-w-xl mx-auto">
           <ExportDropZone />
@@ -197,35 +198,35 @@ export function ExportView() {
     <div className="flex-1 overflow-auto p-6">
       {/* 페이지 제목 */}
       <h1 className="text-base font-semibold text-[var(--color-text-primary)]">
-        PDF 내보내기
+        {t('pdf.headerTitle')}
       </h1>
       <p className="text-sm text-[var(--color-text-tertiary)] mt-1">
-        분석 결과를 PDF 리포트로 내보내거나 AI 기반 보고서를 생성합니다
+        {t('pdf.headerDesc')}
       </p>
 
       {/* 히스토리 fallback 알림: 원본 파일이 없어 저장된 요약 데이터만 사용 */}
       {isFromHistory && (
         <div className="mt-4 flex items-start gap-2 bg-[var(--color-status-warn-bg)] border border-[var(--color-status-warn-border)] text-[var(--color-status-warn-fg)] text-xs rounded-lg px-3 py-2">
           <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span>원본 파일을 찾을 수 없어 저장된 요약 데이터로 생성합니다. 스택트레이스는 포함되지 않습니다.</span>
+          <span>{t('pdf.historyFallbackWarning')}</span>
         </div>
       )}
 
       {/* 탭 바 */}
       <div className="flex border-b border-[var(--color-border-default)] mt-4" role="tablist">
-        {TABS.map((tab) => (
+        {TAB_KEYS.map((tabKey) => (
           <button
-            key={tab.key}
+            key={tabKey}
             role="tab"
-            aria-selected={activeTab === tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            aria-selected={activeTab === tabKey}
+            onClick={() => setActiveTab(tabKey)}
             className={`px-5 py-3 text-sm border-b-2 transition-colors ${
-              activeTab === tab.key
+              activeTab === tabKey
                 ? 'border-[var(--color-accent-primary)] text-[var(--color-accent-primary)]'
                 : 'border-transparent text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'
             }`}
           >
-            {tab.label}
+            {tabKey === 'basic' ? t('pdf.tabBasic') : t('pdf.tabAi')}
           </button>
         ))}
       </div>

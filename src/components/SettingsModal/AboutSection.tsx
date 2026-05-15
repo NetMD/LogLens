@@ -2,16 +2,18 @@
 // 단순한 트리거. 모달은 OpenSourceLicensesModal 이 자체적으로 마운트/언마운트.
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FileText } from "lucide-react";
 import { OpenSourceLicensesModal } from "../OpenSourceLicensesModal";
 
 export function AboutSection() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <section>
       <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">
-        정보
+        {t('settings.aboutSection')}
       </h3>
       <button
         type="button"
@@ -20,10 +22,10 @@ export function AboutSection() {
       >
         <span className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-[var(--color-text-tertiary)]" />
-          오픈소스 라이선스
+          {t('settings.openSourceLicense')}
         </span>
         <span className="text-xs text-[var(--color-text-tertiary)]">
-          보기 →
+          {t('common.open')} →
         </span>
       </button>
 

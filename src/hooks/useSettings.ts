@@ -4,6 +4,8 @@ import { Store } from '@tauri-apps/plugin-store';
 import { useSettingsStore } from '../store/settingsStore';
 import { sanitizeSettings, DEFAULT_SETTINGS } from '../types/settings';
 import type { AppSettings } from '../types/settings';
+import i18n from '../i18n';
+import type { Language } from '../i18n/languages';
 
 // 싱글턴 Store 인스턴스 (모듈 레벨 캐싱)
 let storeInstance: Store | null = null;
@@ -74,5 +76,35 @@ export function useSettings() {
     }
   }
 
-  return { ...store, load, save };
+  /**
+   * 언어 변경 단일 위임 함수.
+   *
+   * 본 함수가 `i18n.changeLanguage` 의 유일한 명시적 호출 진입점이다.
+   * 컴포넌트/다른 훅/services/utils 어디서도 `i18n.changeLanguage` 를
+   * 직접 호출하면 회귀로 간주한다 (R12 설계서 §4 / §8.5 위임 패턴).
+   *
+   * 호출 순서: i18n → tauri → settingsStore (설계서 §4.2)
+   *  (1) i18n.changeLanguage(lang) — UI 즉시 갱신
+   *  (2) tauriStore.set + save — 영속화
+   *  (3) settingsStore.setSettings({ language }) — 인메모리 미러 갱신
+   */
+  async function setLanguage(lang: Language): Promise<void> {
+    // (1) i18next 인스턴스에 언어 변경 통보 → 모든 useTranslation 구독 컴포넌트 리렌더
+    await i18n.changeLanguage(lang);
+
+    // (2) Tauri store 영구 저장
+    try {
+      const tauriStore = await getStore();
+      await tauriStore.set('language', lang);
+      await tauriStore.save();
+    } catch (e) {
+      console.warn('[useSettings] language 영속화 실패:', e);
+      throw e;
+    }
+
+    // (3) settingsStore in-memory 미러 갱신
+    useSettingsStore.getState().setSettings({ language: lang });
+  }
+
+  return { ...store, load, save, setLanguage };
 }

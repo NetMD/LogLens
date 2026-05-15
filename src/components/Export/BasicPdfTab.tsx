@@ -1,6 +1,7 @@
 // 기본 PDF 탭 -- 제목 입력, 체크박스 선택, PDF 생성 버튼
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { FileDown } from 'lucide-react';
 import { useExportStore } from '../../store/exportStore';
@@ -8,21 +9,21 @@ import type { IncludeSections, StacktraceLimit } from '../../store/exportStore';
 import { useLogStore } from '../../store/logStore';
 import { PrintableReport } from './PrintableReport';
 
-// 포함 항목 라벨
-const SECTION_LABELS: Record<keyof IncludeSections, string> = {
-  info: '분석 정보 (파일명, 크기, 엔트리 수)',
-  summaryCards: '에러 요약 카드',
-  timeline: '시간대별 차트',
-  topErrors: 'Top 예외 목록',
-  stacktrace: '주요 스택트레이스',
+// 포함 항목 키 -> i18n key 매핑 (라벨은 t() 로 해석)
+const SECTION_I18N_KEYS: Record<keyof IncludeSections, string> = {
+  info: 'pdf.sectionInfo',
+  summaryCards: 'pdf.sectionSummaryCards',
+  timeline: 'pdf.sectionTimeline',
+  topErrors: 'pdf.sectionTopExceptions',
+  stacktrace: 'pdf.sectionStackTraces',
 };
 
-// 스택트레이스 건수 옵션
-const STACKTRACE_OPTIONS: { value: StacktraceLimit; label: string }[] = [
-  { value: 3, label: '상위 3건' },
-  { value: 5, label: '상위 5건' },
-  { value: 10, label: '상위 10건' },
-  { value: 0, label: '전체 (최대 50건)' },
+// 스택트레이스 건수 옵션 (라벨 i18n key)
+const STACKTRACE_OPTIONS: { value: StacktraceLimit; labelKey: string }[] = [
+  { value: 3, labelKey: 'pdf.stackOption3' },
+  { value: 5, labelKey: 'pdf.stackOption5' },
+  { value: 10, labelKey: 'pdf.stackOption10' },
+  { value: 0, labelKey: 'pdf.stackOptionAll' },
 ];
 
 /** 파일명에서 확장자 제거 (예: "app.log" -> "app") */
@@ -39,6 +40,7 @@ function sanitizeSaveFileName(name: string): string {
 }
 
 export function BasicPdfTab() {
+  const { t } = useTranslation();
   const title = useExportStore((s) => s.title);
   const saveFileName = useExportStore((s) => s.saveFileName);
   const includeSections = useExportStore((s) => s.includeSections);
@@ -56,7 +58,8 @@ export function BasicPdfTab() {
   // 파일 전환 시 제목 + 저장파일명 자동 세팅 (fileName 변경에만 반응)
   useEffect(() => {
     if (!fileName) return;
-    const base = `${fileName} 분석 리포트`;
+    // 사용자에게 노출되는 PDF 내부 제목은 파일명 그대로 사용 (장식어 없음)
+    const base = fileName;
     setTitle(base);
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -121,7 +124,7 @@ export function BasicPdfTab() {
       {/* 리포트 제목 입력 (PDF 내부에 표시되는 제목) */}
       <div>
         <label className="block text-xs text-[var(--color-text-tertiary)] mb-1.5">
-          리포트 제목 <span className="text-[var(--color-text-disabled)]">(PDF 내용에 표시)</span>
+          {t('pdf.reportTitleLabel')} <span className="text-[var(--color-text-disabled)]">{t('pdf.reportTitleHint')}</span>
         </label>
         <input
           type="text"
@@ -134,7 +137,7 @@ export function BasicPdfTab() {
       {/* 저장 파일명 입력 (.pdf 자동 추가) */}
       <div>
         <label className="block text-xs text-[var(--color-text-tertiary)] mb-1.5">
-          저장 파일명 <span className="text-[var(--color-text-disabled)]">(.pdf 자동 추가)</span>
+          {t('pdf.saveFileNameLabel')} <span className="text-[var(--color-text-disabled)]">{t('pdf.saveFileNameHint')}</span>
         </label>
         <div className="flex items-center gap-2">
           <input
@@ -151,10 +154,10 @@ export function BasicPdfTab() {
       {/* 포함 항목 체크박스 리스트 */}
       <div>
         <label className="block text-xs text-[var(--color-text-tertiary)] mb-1.5">
-          포함 항목
+          {t('pdf.includeItemsLabel')}
         </label>
         <div className="border border-[var(--color-border-subtle)] rounded-xl overflow-hidden">
-          {(Object.keys(SECTION_LABELS) as (keyof IncludeSections)[]).map((key, i) => (
+          {(Object.keys(SECTION_I18N_KEYS) as (keyof IncludeSections)[]).map((key, i) => (
             <div key={key}>
               {i > 0 && <div className="border-t border-[var(--color-border-subtle)]" />}
               <label className="flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-[var(--color-bg-hover)]">
@@ -173,7 +176,7 @@ export function BasicPdfTab() {
                   )}
                 </div>
                 <span className="text-sm text-[var(--color-text-secondary)]">
-                  {SECTION_LABELS[key]}
+                  {t(SECTION_I18N_KEYS[key])}
                 </span>
               </label>
 
@@ -187,13 +190,13 @@ export function BasicPdfTab() {
                   >
                     {STACKTRACE_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
-                        {opt.label}
+                        {t(opt.labelKey)}
                       </option>
                     ))}
                   </select>
                   {stacktraceLimit === 0 && (
                     <p className="text-[11px] text-[var(--color-text-disabled)] mt-1">
-                      메모리 보호를 위해 상위 50건만 포함됩니다
+                      {t('pdf.stackLimitNote')}
                     </p>
                   )}
                 </div>
@@ -214,7 +217,7 @@ export function BasicPdfTab() {
         }`}
       >
         <FileDown className="w-4 h-4" />
-        PDF 생성
+        {t('pdf.generatePdfButton')}
       </button>
 
       {/* PrintableReport Portal (인쇄 시에만 body 직속에 마운트) */}

@@ -10,6 +10,7 @@ import { flushPending, parseBatch, resetParser, detectCsvFormat, preprocessCsvLi
 import type { LogEntry } from "../utils/logParser";
 import { useComparisonStore } from "../store/comparisonStore";
 import { compareAnalyses } from "../utils/comparisonAnalyzer";
+import i18n from "../i18n";
 
 // FileReadEvent: 기존 useLogFile.ts와 동일 타입
 interface FileReadEvent {
@@ -122,7 +123,7 @@ export function useComparisonFile() {
             s.setParsing(side, false);
             resolve();
           } else if (event.event === "Error") {
-            s.setParseError(side, event.data.message ?? "알 수 없는 오류");
+            s.setParseError(side, event.data.message ?? i18n.t("common.unknownError"));
             reject(new Error(event.data.message));
           }
         };

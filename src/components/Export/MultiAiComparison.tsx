@@ -1,6 +1,7 @@
 // 멀티 AI 비교 생성 — 프로바이더 선택 + 병렬 생성 + 결과 그리드 (Step 5)
 
 import { useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { Sparkles, Settings, History, Download } from 'lucide-react';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -32,11 +33,11 @@ import { ComparisonCard } from './ComparisonCard';
 import { ComparisonDetailModal } from './ComparisonDetailModal';
 import { PrintableAiReport } from './PrintableAiReport';
 
-// 프리셋 정의 (AiReportTab 과 동일 — 추후 공유 상수로 추출 가능)
-const PRESETS: { type: PresetType; label: string }[] = [
-  { type: 'incident', label: '장애 보고서' },
-  { type: 'daily', label: '일일 점검 보고서' },
-  { type: 'devSummary', label: '개발팀 공유 요약' },
+// 프리셋 정의 (AiReportTab 과 동일 — 추후 공유 상수로 추출 가능). 라벨 i18n key.
+const PRESETS: { type: PresetType; labelKey: string }[] = [
+  { type: 'incident', labelKey: 'pdf.presetIncident' },
+  { type: 'daily', labelKey: 'pdf.presetDaily' },
+  { type: 'devSummary', labelKey: 'pdf.presetDevSummary' },
 ];
 
 /** 비어있는 ComparisonEntry 초기값 */
@@ -60,23 +61,24 @@ function formatShortDate(iso: string): string {
   return `${d.getMonth() + 1}/${pad(d.getDate())}`;
 }
 
-function formatRelativeTime(iso: string): string {
+function formatRelativeTime(iso: string, t: (k: string, opts?: Record<string, unknown>) => string): string {
   const ms = Date.now() - new Date(iso).getTime();
-  if (ms < 0) return '방금';
+  if (ms < 0) return t('pdf.justNow');
   const sec = Math.floor(ms / 1000);
-  if (sec < 60) return '방금';
+  if (sec < 60) return t('pdf.justNow');
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}분 전`;
+  if (min < 60) return t('pdf.minutesAgo', { count: min });
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}시간 전`;
+  if (hr < 24) return t('pdf.hoursAgo', { count: hr });
   const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}일 전`;
+  if (day < 7) return t('pdf.daysAgo', { count: day });
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 export function MultiAiComparison() {
+  const { t } = useTranslation();
   const aiApiKeys = useSettingsStore((s) => s.aiApiKeys);
 
   const localLlmModel = useSettingsStore((s) => s.localLlmModel);
@@ -298,7 +300,7 @@ export function MultiAiComparison() {
 
     const originalTitle = document.title;
     const label = AI_PROVIDER_LABELS[r.provider];
-    document.title = `비교 리포트 - ${label} (${r.model})`;
+    document.title = t('pdf.comparisonReportTitle', { label, model: r.model });
 
     const afterPrint = () => {
       setHistoryPrintTarget(null);
@@ -344,7 +346,9 @@ export function MultiAiComparison() {
       const now = new Date();
       const pad = (n: number) => String(n).padStart(2, '0');
       const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-      const defaultName = `비교 리포트 - ${ts}.zip`;
+      // 파일명 베이스는 i18n 키에서 가져온 라벨에 timestamp + provider/model placeholders 제거
+      const baseLabel = t('pdf.comparisonReportTitle', { label: '', model: '' }).replace(/[\s\-()]+$/, '').trim();
+      const defaultName = `${baseLabel} - ${ts}.zip`;
 
       const path = await save({
         defaultPath: defaultName,
@@ -374,7 +378,7 @@ export function MultiAiComparison() {
 
     const originalTitle = document.title;
     const label = AI_PROVIDER_LABELS[p];
-    document.title = `비교 리포트 - ${label} (${entry.model})`;
+    document.title = t('pdf.comparisonReportTitle', { label, model: entry.model });
 
     const afterPrint = () => {
       setShowPrintable(null);
@@ -405,14 +409,14 @@ export function MultiAiComparison() {
       <div className="bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] rounded-xl p-6 text-center">
         <Sparkles className="w-8 h-8 text-[var(--color-text-disabled)] mx-auto mb-3" />
         <p className="text-sm text-[var(--color-text-secondary)]">
-          비교 생성을 사용하려면 2개 이상의 프로바이더에 API 키를 등록해 주세요.
+          {t('pdf.noKeysForComparison')}
         </p>
         <button
           onClick={() => openSettingsModal('ai')}
           className="mt-4 px-4 py-2 text-sm rounded-lg border border-[var(--color-border-default)] hover:bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] transition-colors inline-flex items-center gap-2"
         >
           <Settings className="w-4 h-4" />
-          AI 설정
+          {t('pdf.aiSettings')}
         </button>
       </div>
     );
@@ -424,7 +428,7 @@ export function MultiAiComparison() {
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <label className="block text-xs text-[var(--color-text-tertiary)]">
-            비교 대상 선택 (2개 이상)
+            {t('pdf.compareSelectLabel')}
           </label>
           <button
             type="button"
@@ -432,7 +436,7 @@ export function MultiAiComparison() {
             className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] inline-flex items-center gap-1 transition-colors"
           >
             <Settings className="w-3 h-3" />
-            설정에서 관리
+            {t('pdf.manageInSettings')}
           </button>
         </div>
         <div className="space-y-2">
@@ -457,7 +461,7 @@ export function MultiAiComparison() {
                   className="accent-blue-500 flex-shrink-0"
                 />
                 <span className="text-sm text-[var(--color-text-primary)] w-16 flex-shrink-0">
-                  {isLocal ? '🖥 로컬' : AI_PROVIDER_LABELS[p]}
+                  {isLocal ? t('pdf.localLabel') : AI_PROVIDER_LABELS[p]}
                 </span>
                 {ready ? (
                   isLocal ? (
@@ -486,7 +490,7 @@ export function MultiAiComparison() {
                   )
                 ) : (
                   <span className="text-[11px] text-[var(--color-text-disabled)]">
-                    {isLocal ? '모델명 미설정' : 'API 키 미등록'}
+                    {isLocal ? t('pdf.modelNotSetShort') : t('pdf.apiKeyNotSet')}
                   </span>
                 )}
               </div>
@@ -498,7 +502,7 @@ export function MultiAiComparison() {
       {/* ── 프리셋 + 언어 ── */}
       <div className="flex items-center gap-4">
         <div className="flex-1">
-          <label className="block text-xs text-[var(--color-text-tertiary)] mb-1">프리셋</label>
+          <label className="block text-xs text-[var(--color-text-tertiary)] mb-1">{t('pdf.presetLabel')}</label>
           <select
             value={presetType}
             onChange={(e) => setPresetType(e.target.value as PresetType)}
@@ -507,21 +511,21 @@ export function MultiAiComparison() {
           >
             {PRESETS.map((p) => (
               <option key={p.type} value={p.type}>
-                {p.label}
+                {t(p.labelKey)}
               </option>
             ))}
           </select>
         </div>
         <div className="flex-1">
-          <label className="block text-xs text-[var(--color-text-tertiary)] mb-1">출력 언어</label>
+          <label className="block text-xs text-[var(--color-text-tertiary)] mb-1">{t('pdf.outputLanguageLabel')}</label>
           <select
             value={outputLanguage}
             onChange={(e) => setOutputLanguage(e.target.value as 'ko' | 'en')}
             disabled={isRunning}
             className="w-full bg-[var(--color-bg-input)] border border-[var(--color-border-default)] rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)]"
           >
-            <option value="ko">한국어</option>
-            <option value="en">English</option>
+            <option value="ko">{t('pdf.ko')}</option>
+            <option value="en">{t('pdf.en')}</option>
           </select>
         </div>
       </div>
@@ -529,7 +533,7 @@ export function MultiAiComparison() {
       {/* ── 프로젝트 루트 (단일 생성과 공유) ── */}
       <div>
         <label className="block text-xs text-[var(--color-text-tertiary)] mb-1.5">
-          프로젝트 루트 (선택)
+          {t('pdf.projectRootLabel')}
         </label>
         <ProjectRootPicker
           projectRoot={projectRoot}
@@ -537,7 +541,7 @@ export function MultiAiComparison() {
           disabled={isRunning}
         />
         <p className="text-xs text-[var(--color-text-disabled)] mt-1.5">
-          폴더를 선택하면 스택트레이스 관련 소스 코드를 AI에 함께 전달합니다.
+          {t('pdf.projectRootCompactHelp')}
         </p>
       </div>
 
@@ -547,7 +551,7 @@ export function MultiAiComparison() {
           onClick={handleCancel}
           className="w-full py-2.5 text-sm font-medium border border-[var(--color-border-default)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-hover)] rounded-lg transition-colors"
         >
-          취소
+          {t('pdf.cancel')}
         </button>
       ) : (
         <button
@@ -556,12 +560,12 @@ export function MultiAiComparison() {
           className="w-full py-2.5 text-sm font-medium bg-[var(--color-status-success-fg)] hover:bg-[var(--color-status-success-fg)] text-white rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--color-status-success-fg)]"
         >
           <Sparkles className="w-4 h-4" />
-          비교 생성 ({selectedCount}개 프로바이더)
+          {t('pdf.comparisonGenerateCount', { count: selectedCount })}
         </button>
       )}
       {selectedCount < 2 && !isRunning && (
         <p className="text-xs text-[var(--color-text-tertiary)] -mt-3">
-          2개 이상의 프로바이더를 선택해야 비교 생성을 시작할 수 있습니다.
+          {t('pdf.comparisonHint')}
         </p>
       )}
 
@@ -570,7 +574,7 @@ export function MultiAiComparison() {
         <div className="pt-3 border-t border-[var(--color-border-default)]">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              결과 ({entryList.filter((e) => e.status === 'done').length}/{entryList.length} 완료)
+              {t('pdf.resultProgress', { done: entryList.filter((e) => e.status === 'done').length, total: entryList.length })}
             </p>
             {!isRunning && (
               <button
@@ -578,7 +582,7 @@ export function MultiAiComparison() {
                 onClick={() => setEntries({})}
                 className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors"
               >
-                닫기
+                {t('pdf.closeButton')}
               </button>
             )}
           </div>
@@ -608,7 +612,7 @@ export function MultiAiComparison() {
               className="mt-3 w-full py-2.5 text-sm font-medium border border-[var(--color-border-default)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] rounded-lg flex items-center justify-center gap-2 transition-colors"
             >
               <Download className="w-4 h-4" />
-              전체 다운로드 (Markdown ZIP)
+              {t('pdf.downloadZip')}
             </button>
           )}
         </div>
@@ -619,7 +623,7 @@ export function MultiAiComparison() {
         <div className="pt-3 border-t border-[var(--color-border-default)]">
           <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-tertiary)] mb-2">
             <History className="w-3.5 h-3.5" />
-            <span>멀티 분석 이력 ({comparisonHistoryEntries.length})</span>
+            <span>{t('pdf.comparisonHistoryTitle', { count: comparisonHistoryEntries.length })}</span>
           </div>
           <ul className="space-y-1.5">
             {comparisonHistoryEntries.slice(0, 5).map((h) => {
@@ -642,15 +646,16 @@ export function MultiAiComparison() {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs text-[var(--color-text-primary)] truncate">
-                        {dateStr} {h.sourceFileName} 멀티 분석
+                        {t('pdf.comparisonSummary', { date: dateStr, file: h.sourceFileName })}
                       </span>
                       <span className="text-[10px] text-[var(--color-text-disabled)] flex-shrink-0">
-                        {formatRelativeTime(h.generatedAt)}
+                        {formatRelativeTime(h.generatedAt, t)}
                       </span>
                     </div>
                     <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5">
-                      {results.length}개 시도 · {doneCount}개 성공
-                      {errorCount > 0 && ` · ${errorCount}개 실패`}
+                      {errorCount > 0
+                        ? t('pdf.comparisonAttemptsWithFail', { total: results.length, done: doneCount, fail: errorCount })
+                        : t('pdf.comparisonAttempts', { total: results.length, done: doneCount })}
                     </p>
                   </button>
 
@@ -681,10 +686,10 @@ export function MultiAiComparison() {
                               onClick={() => handleDownloadFromHistory(r)}
                               className="text-[10px] text-[var(--color-accent-primary)] hover:text-[var(--color-accent-primary)] flex-shrink-0 transition-colors"
                             >
-                              다운로드
+                              {t('pdf.downloadShort')}
                             </button>
                           ) : (
-                            <span className="text-[10px] text-[var(--color-status-error-fg)] flex-shrink-0">실패</span>
+                            <span className="text-[10px] text-[var(--color-status-error-fg)] flex-shrink-0">{t('pdf.failedShort')}</span>
                           )}
                         </div>
                       ))}
@@ -713,7 +718,7 @@ export function MultiAiComparison() {
       {printEntry && printEntry.markdown &&
         createPortal(
           <PrintableAiReport
-            title={`비교 리포트 - ${AI_PROVIDER_LABELS[printEntry.provider]} (${printEntry.model})`}
+            title={t('pdf.comparisonReportTitle', { label: AI_PROVIDER_LABELS[printEntry.provider], model: printEntry.model })}
             markdown={printEntry.markdown}
             fileName={fileName ?? ''}
             generatedAt={new Date().toISOString()}
@@ -725,7 +730,7 @@ export function MultiAiComparison() {
       {historyPrintTarget && historyPrintTarget.markdown &&
         createPortal(
           <PrintableAiReport
-            title={`비교 리포트 - ${AI_PROVIDER_LABELS[historyPrintTarget.provider]} (${historyPrintTarget.model})`}
+            title={t('pdf.comparisonReportTitle', { label: AI_PROVIDER_LABELS[historyPrintTarget.provider], model: historyPrintTarget.model })}
             markdown={historyPrintTarget.markdown}
             fileName={fileName ?? ''}
             generatedAt={new Date().toISOString()}

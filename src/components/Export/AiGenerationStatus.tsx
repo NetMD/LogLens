@@ -2,6 +2,7 @@
 // 8차: 소스 분석 단계 추가 → 3단계 / 4단계 동적 표시 + StreamingPreview 통합
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle, AlertTriangle, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import type { GenerationStatus } from '../../store/exportStore';
 import { isGenerating, progressPercent, progressMessage } from '../../store/exportStore';
@@ -67,6 +68,7 @@ export function AiGenerationStatus({
   modelName,
   source = 'fresh',
 }: Props) {
+  const { t } = useTranslation();
   const [showErrorDetail, setShowErrorDetail] = useState(false);
   // 생성 중 (collecting | analyzing-source | calling-ai | generating-doc)
   if (isGenerating(status)) {
@@ -118,12 +120,13 @@ export function AiGenerationStatus({
         {/* 스트리밍 미리보기 — 버퍼가 비어있으면 StreamingPreview 내부에서 null 반환 */}
         {showStreaming && <StreamingPreview visible={true} />}
 
-        {/* 비스트리밍 모드 안내 (calling-ai 단계에서 대기 시간 체감 완화) */}
+        {/* 비스트리밍 모드 안내 (calling-ai 단계에서 대기 시간 체감 완화)
+            outputLanguage 는 AI 가 산출하는 리포트 언어(ko/en)이며 UI 언어와는 독립. */}
         {status === 'calling-ai' && (
           <p className="mt-4 text-xs text-[var(--color-text-disabled)]">
             {outputLanguage === 'ko'
-              ? 'AI가 전체 보고서를 작성 중입니다.'
-              : 'AI is writing the full report.'}
+              ? t('pdf.writingFullReport')
+              : t('pdf.writingFullReportEn')}
           </p>
         )}
 
@@ -132,7 +135,7 @@ export function AiGenerationStatus({
           onClick={onCancel}
           className="mt-6 px-4 py-2 text-sm rounded-lg border border-[var(--color-border-default)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-hover)] transition-colors"
         >
-          취소
+          {t('pdf.cancel')}
         </button>
       </div>
     );
@@ -142,24 +145,27 @@ export function AiGenerationStatus({
   if (status === 'done') {
     const isRestored = source === 'restored';
     // 메타 라인을 [프로바이더, 모델, 토큰, 비용] 순으로 조립
+    // outputLanguage 는 AI 가 산출하는 리포트의 언어이며 UI 언어와는 독립.
     // 복원 모드에서는 토큰/비용 뒤에 "(저장 시점)" 힌트를 붙여 "지금 쓴 비용" 으로 오해하지 않게 한다.
-    const savedSuffix = outputLanguage === 'ko' ? ' (저장 시점)' : ' (when saved)';
     const metaParts: string[] = [];
     if (providerLabel) metaParts.push(providerLabel);
     if (modelName) metaParts.push(modelName);
     if (typeof tokensUsed === 'number') {
-      const base =
+      const tokenCount = tokensUsed.toLocaleString();
+      // outputLanguage ko 일 때는 한글 키, en 일 때는 영문 키 (둘 다 i18n 리소스에서 가져옴)
+      metaParts.push(
         outputLanguage === 'ko'
-          ? `${tokensUsed.toLocaleString()} 토큰`
-          : `${tokensUsed.toLocaleString()} tokens`;
-      metaParts.push(isRestored ? base + savedSuffix : base);
+          ? (isRestored ? `${tokenCount} 토큰 (저장 시점)` : `${tokenCount} 토큰`)
+          : (isRestored ? `${tokenCount} tokens (when saved)` : `${tokenCount} tokens`)
+      );
     }
     if (typeof estimatedCostUsd === 'number') {
-      const base =
+      const cost = estimatedCostUsd.toFixed(4);
+      metaParts.push(
         outputLanguage === 'ko'
-          ? `예상 비용 ~$${estimatedCostUsd.toFixed(4)}`
-          : `est. ~$${estimatedCostUsd.toFixed(4)}`;
-      metaParts.push(isRestored ? base + savedSuffix : base);
+          ? (isRestored ? `예상 비용 ~$${cost} (저장 시점)` : `예상 비용 ~$${cost}`)
+          : (isRestored ? `est. ~$${cost} (when saved)` : `est. ~$${cost}`)
+      );
     }
     return (
       <div className="bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] rounded-xl p-8 text-center">
@@ -213,7 +219,7 @@ export function AiGenerationStatus({
           onClick={() => onDownload(outputFormat)}
           className="mt-4 px-6 py-2.5 text-sm font-medium bg-[var(--color-button-primary-bg)] hover:bg-[var(--color-button-primary-bg-hover)] text-white rounded-lg transition-colors"
         >
-          다운로드 ({outputFormat === 'pdf' ? 'PDF' : 'Word'})
+          {t('pdf.downloadButton')} ({outputFormat === 'pdf' ? 'PDF' : 'Word'})
         </button>
 
         {/* 닫기: idle(옵션 선택 화면)로 복귀 — 사용자 요청으로 "다시 생성" 을 "닫기" 로 변경 */}
@@ -221,7 +227,7 @@ export function AiGenerationStatus({
           onClick={onReset}
           className="block mx-auto mt-3 text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] underline transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none rounded px-1"
         >
-          닫기
+          {t('pdf.closeButton')}
         </button>
       </div>
     );
@@ -256,12 +262,12 @@ export function AiGenerationStatus({
               {showErrorDetail ? (
                 <>
                   <ChevronUp className="w-3 h-3" />
-                  상세 정보 숨기기
+                  {t('pdf.errorDetailsHide')}
                 </>
               ) : (
                 <>
                   <ChevronDown className="w-3 h-3" />
-                  상세 정보 보기
+                  {t('pdf.errorDetailsShow')}
                 </>
               )}
             </button>
@@ -280,7 +286,7 @@ export function AiGenerationStatus({
           onClick={onRetry}
           className="mt-4 px-6 py-2.5 text-sm font-medium bg-[var(--color-button-danger-bg)] hover:bg-[var(--color-button-danger-bg-hover)] text-white rounded-lg transition-colors"
         >
-          다시 시도
+          {t('pdf.retryButton')}
         </button>
 
         {/* 옵션으로 돌아가기 */}
@@ -288,7 +294,7 @@ export function AiGenerationStatus({
           onClick={onReset}
           className="block mx-auto mt-3 text-xs text-[var(--color-text-tertiary)] underline"
         >
-          옵션으로 돌아가기
+          {t('pdf.backToOptions')}
         </button>
       </div>
     );

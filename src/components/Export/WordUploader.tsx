@@ -3,6 +3,8 @@
 // 사용자가 .docx 파일을 드롭/클릭으로 선택하면 File.arrayBuffer()로 로드 후 onFileSelect 콜백 호출
 
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 import { Upload, FileText, X } from 'lucide-react';
 
 interface UploadedFile {
@@ -17,16 +19,17 @@ interface Props {
   onFileRemove: () => void;
 }
 
-/** Word 파일 검증 -- 드래그+클릭 양쪽 모두 동일 함수 사용 */
+/** Word 파일 검증 -- 드래그+클릭 양쪽 모두 동일 함수 사용
+ *  모듈 레벨 함수에서는 i18n.t() 직접 호출. (컴포넌트 외부에서도 호출되므로 useTranslation 사용 불가) */
 export function validateWordFile(file: File): { valid: boolean; error?: string } {
   // .docx 확장자 검증
   if (!file.name.toLowerCase().endsWith('.docx')) {
-    return { valid: false, error: '.docx 파일만 업로드할 수 있습니다' };
+    return { valid: false, error: i18n.t('pdf.wordOnlyDocx') };
   }
   // 10MB 크기 제한 검증
   const MAX_SIZE = 10 * 1024 * 1024;
   if (file.size > MAX_SIZE) {
-    return { valid: false, error: '파일 크기가 10MB를 초과합니다' };
+    return { valid: false, error: i18n.t('pdf.wordSizeLimit') };
   }
   return { valid: true };
 }
@@ -39,6 +42,7 @@ function formatSize(bytes: number): string {
 }
 
 export function WordUploader({ file, onFileSelect, onFileRemove }: Props) {
+  const { t } = useTranslation();
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -46,7 +50,7 @@ export function WordUploader({ file, onFileSelect, onFileRemove }: Props) {
   const handleFile = async (picked: File) => {
     const validation = validateWordFile(picked);
     if (!validation.valid) {
-      setError(validation.error ?? '파일 검증 실패');
+      setError(validation.error ?? t('pdf.wordValidationFail'));
       return;
     }
     try {
@@ -55,7 +59,7 @@ export function WordUploader({ file, onFileSelect, onFileRemove }: Props) {
       setError(null);
     } catch (e) {
       console.warn('[WordUploader] 파일 읽기 실패:', e);
-      setError('파일을 읽을 수 없습니다. 다시 시도해 주세요.');
+      setError(t('pdf.wordReadFail'));
     }
   };
 
@@ -117,7 +121,7 @@ export function WordUploader({ file, onFileSelect, onFileRemove }: Props) {
       <div
         role="button"
         tabIndex={0}
-        aria-label=".docx 파일 업로드 영역"
+        aria-label={t('pdf.wordDropzoneLabel')}
         onClick={file ? undefined : openFileDialog}
         onKeyDown={handleKeyDown}
         onDragOver={handleDragOver}
@@ -148,7 +152,7 @@ export function WordUploader({ file, onFileSelect, onFileRemove }: Props) {
                   onFileRemove();
                   setError(null);
                 }}
-                aria-label="파일 제거"
+                aria-label={t('pdf.wordRemoveAria')}
                 className="ml-1 p-0.5 rounded-full hover:bg-[var(--color-status-success-bg)] focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none"
               >
                 <X className="w-3 h-3" />
@@ -162,7 +166,7 @@ export function WordUploader({ file, onFileSelect, onFileRemove }: Props) {
               }}
               className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] underline"
             >
-              다른 파일 선택
+              {t('pdf.wordSelectAnother')}
             </button>
           </div>
         ) : (
@@ -175,10 +179,10 @@ export function WordUploader({ file, onFileSelect, onFileRemove }: Props) {
               aria-hidden="true"
             />
             <p className="text-sm text-[var(--color-text-secondary)]">
-              {isDragging ? '파일을 놓으세요' : '.docx 파일을 드래그하거나 클릭하여 선택하세요'}
+              {isDragging ? t('pdf.wordDropping') : t('pdf.wordDropOrClick')}
             </p>
             <p className="text-xs text-[var(--color-text-disabled)] mt-2">
-              최대 10MB, .docx 형식만 지원
+              {t('pdf.wordMaxNote')}
             </p>
           </>
         )}

@@ -3,6 +3,7 @@
 // 선택 후 보안 배너 표시 (소스코드 AI 전송 경고)
 
 import { useId, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FolderOpen, X, AlertTriangle } from 'lucide-react';
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function ProjectRootPicker({ projectRoot, onChange, disabled }: Props) {
+  const { t } = useTranslation();
   const bannerId = useId();
   const [isPicking, setIsPicking] = useState(false);
 
@@ -48,7 +50,7 @@ export function ProjectRootPicker({ projectRoot, onChange, disabled }: Props) {
           }`}
           aria-describedby={projectRoot ? bannerId : undefined}
         >
-          {projectRoot ?? '선택되지 않음'}
+          {projectRoot ?? t('pdf.selectedNone')}
         </div>
 
         {/* 폴더 선택 버튼 */}
@@ -59,7 +61,7 @@ export function ProjectRootPicker({ projectRoot, onChange, disabled }: Props) {
           className="px-3 py-2 text-xs rounded-lg border border-[var(--color-border-default)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none motion-safe:transition-colors"
         >
           <FolderOpen className="w-3.5 h-3.5" />
-          폴더 선택
+          {t('pdf.selectFolder')}
         </button>
 
         {/* 선택 해제 버튼 (선택된 상태에서만) */}
@@ -68,7 +70,7 @@ export function ProjectRootPicker({ projectRoot, onChange, disabled }: Props) {
             type="button"
             onClick={handleClear}
             disabled={disabled}
-            aria-label="선택 해제"
+            aria-label={t('pdf.clearSelection')}
             className="p-2 rounded-lg text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-secondary)] disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none motion-safe:transition-colors"
           >
             <X className="w-3.5 h-3.5" />
@@ -87,9 +89,8 @@ export function ProjectRootPicker({ projectRoot, onChange, disabled }: Props) {
             className="w-3.5 h-3.5 mt-0.5 flex-shrink-0"
             aria-hidden="true"
           />
-          <span>
-            선택한 폴더의 Java/Kotlin 소스 파일이 AI 서버로 전송됩니다. 민감
-            정보가 포함되지 않았는지 확인해 주세요.
+          <span className="whitespace-pre-line">
+            {t('pdf.projectRootWarning')}
           </span>
         </div>
       )}

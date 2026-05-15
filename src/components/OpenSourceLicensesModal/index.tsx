@@ -4,8 +4,11 @@
 // - "전체 라이선스 보기" 토글 → THIRD_PARTY_LICENSES.md 동봉본을 dynamic import 로 로드
 //
 // 5종 모달 a11y 패턴 준수: role="dialog" + aria-modal + aria-labelledby + useFocusTrap + 단순 어두운 오버레이.
+//
+// R12 i18n: licenses.* 네임스페이스 사용. 패키지 description 35건은 영문 통일 (의존성 메타데이터 영역).
 
 import { useEffect, useId, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { X, Package, FileText } from "lucide-react";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { LoadingSpinner } from "../shared/LoadingSpinner";
@@ -17,6 +20,7 @@ interface Props {
 
 // 직접 의존성 (Cargo.toml [dependencies], package.json dependencies)
 // 의존성 변경 시 이 목록도 업데이트한다. 전체 transitive 목록은 THIRD_PARTY_LICENSES.md 참조.
+// description 은 패키지 메타데이터 영역이므로 ko/en 모두 영문 통일 (UX 결정 — R12).
 interface DirectDep {
   name: string;
   description: string;
@@ -24,69 +28,76 @@ interface DirectDep {
 }
 
 const RUST_DIRECT: DirectDep[] = [
-  { name: "tauri", description: "데스크탑 앱 프레임워크", license: "Apache-2.0 OR MIT" },
-  { name: "tauri-plugin-fs", description: "파일 시스템 접근", license: "Apache-2.0 OR MIT" },
-  { name: "tauri-plugin-dialog", description: "OS 다이얼로그", license: "Apache-2.0 OR MIT" },
-  { name: "tauri-plugin-http", description: "HTTP 클라이언트", license: "Apache-2.0 OR MIT" },
-  { name: "tauri-plugin-store", description: "키-값 영속 스토어", license: "Apache-2.0 OR MIT" },
-  { name: "tokio", description: "비동기 런타임", license: "MIT" },
-  { name: "serde", description: "직렬화/역직렬화", license: "MIT OR Apache-2.0" },
-  { name: "serde_json", description: "JSON 직렬화", license: "MIT OR Apache-2.0" },
-  { name: "thiserror", description: "에러 매크로", license: "MIT OR Apache-2.0" },
-  { name: "reqwest", description: "HTTP 클라이언트", license: "MIT OR Apache-2.0" },
-  { name: "chrono", description: "날짜·시간 처리", license: "MIT OR Apache-2.0" },
-  { name: "notify", description: "파일 변경 감시", license: "CC0-1.0 OR Artistic-2.0" },
-  { name: "font-kit", description: "폰트 열거", license: "Apache-2.0 OR MIT" },
-  { name: "uuid", description: "UUID 생성", license: "Apache-2.0 OR MIT" },
-  { name: "async-compression", description: "gzip 스트리밍 압축 해제", license: "MIT OR Apache-2.0" },
-  { name: "hostname", description: "호스트명 조회", license: "MIT OR Apache-2.0" },
-  { name: "hex", description: "Hex 인코딩", license: "MIT OR Apache-2.0" },
-  { name: "once_cell", description: "지연 초기화", license: "MIT OR Apache-2.0" },
+  { name: "tauri", description: "Desktop app framework", license: "Apache-2.0 OR MIT" },
+  { name: "tauri-plugin-fs", description: "File system access", license: "Apache-2.0 OR MIT" },
+  { name: "tauri-plugin-dialog", description: "OS dialogs", license: "Apache-2.0 OR MIT" },
+  { name: "tauri-plugin-http", description: "HTTP client", license: "Apache-2.0 OR MIT" },
+  { name: "tauri-plugin-store", description: "Key-value persistent store", license: "Apache-2.0 OR MIT" },
+  { name: "tokio", description: "Async runtime", license: "MIT" },
+  { name: "serde", description: "Serialization / deserialization", license: "MIT OR Apache-2.0" },
+  { name: "serde_json", description: "JSON serialization", license: "MIT OR Apache-2.0" },
+  { name: "thiserror", description: "Error macros", license: "MIT OR Apache-2.0" },
+  { name: "reqwest", description: "HTTP client", license: "MIT OR Apache-2.0" },
+  { name: "chrono", description: "Date / time handling", license: "MIT OR Apache-2.0" },
+  { name: "notify", description: "File change watcher", license: "CC0-1.0 OR Artistic-2.0" },
+  { name: "font-kit", description: "Font enumeration", license: "Apache-2.0 OR MIT" },
+  { name: "uuid", description: "UUID generation", license: "Apache-2.0 OR MIT" },
+  { name: "async-compression", description: "Streaming gzip decompression", license: "MIT OR Apache-2.0" },
+  { name: "hostname", description: "Host name lookup", license: "MIT OR Apache-2.0" },
+  { name: "hex", description: "Hex encoding", license: "MIT OR Apache-2.0" },
+  { name: "once_cell", description: "Lazy initialization", license: "MIT OR Apache-2.0" },
 ];
 
 const JS_DIRECT: DirectDep[] = [
-  { name: "react", description: "UI 라이브러리", license: "MIT" },
-  { name: "react-dom", description: "React DOM 렌더러", license: "MIT" },
-  { name: "zustand", description: "상태 관리", license: "MIT" },
-  { name: "recharts", description: "차트 라이브러리", license: "MIT" },
-  { name: "lucide-react", description: "아이콘 셋", license: "ISC" },
-  { name: "@tanstack/react-virtual", description: "가상 스크롤", license: "MIT" },
+  { name: "react", description: "UI library", license: "MIT" },
+  { name: "react-dom", description: "React DOM renderer", license: "MIT" },
+  { name: "zustand", description: "State management", license: "MIT" },
+  { name: "recharts", description: "Chart library", license: "MIT" },
+  { name: "lucide-react", description: "Icon set", license: "ISC" },
+  { name: "@tanstack/react-virtual", description: "Virtual scroll", license: "MIT" },
   { name: "@tauri-apps/api", description: "Tauri JS API", license: "Apache-2.0 OR MIT" },
-  { name: "@tauri-apps/plugin-dialog", description: "Tauri 다이얼로그 플러그인", license: "Apache-2.0 OR MIT" },
-  { name: "@tauri-apps/plugin-fs", description: "Tauri 파일시스템 플러그인", license: "Apache-2.0 OR MIT" },
-  { name: "@tauri-apps/plugin-http", description: "Tauri HTTP 플러그인", license: "Apache-2.0 OR MIT" },
-  { name: "@tauri-apps/plugin-store", description: "Tauri 스토어 플러그인", license: "Apache-2.0 OR MIT" },
-  { name: "react-markdown", description: "마크다운 렌더링", license: "MIT" },
-  { name: "react-syntax-highlighter", description: "코드 하이라이팅", license: "MIT" },
-  { name: "docx", description: "Word 문서 생성", license: "MIT" },
-  { name: "mammoth", description: "Word 문서 파싱", license: "BSD-2-Clause" },
-  { name: "fflate", description: "ZIP 압축 해제", license: "MIT" },
-  { name: "sonner", description: "토스트 알림", license: "MIT" },
+  { name: "@tauri-apps/plugin-dialog", description: "Tauri dialog plugin", license: "Apache-2.0 OR MIT" },
+  { name: "@tauri-apps/plugin-fs", description: "Tauri filesystem plugin", license: "Apache-2.0 OR MIT" },
+  { name: "@tauri-apps/plugin-http", description: "Tauri HTTP plugin", license: "Apache-2.0 OR MIT" },
+  { name: "@tauri-apps/plugin-store", description: "Tauri store plugin", license: "Apache-2.0 OR MIT" },
+  { name: "react-markdown", description: "Markdown rendering", license: "MIT" },
+  { name: "react-syntax-highlighter", description: "Code syntax highlighting", license: "MIT" },
+  { name: "docx", description: "Word document generation", license: "MIT" },
+  { name: "mammoth", description: "Word document parsing", license: "BSD-2-Clause" },
+  { name: "fflate", description: "ZIP decompression", license: "MIT" },
+  { name: "sonner", description: "Toast notifications", license: "MIT" },
 ];
+
+// 분포 라벨은 licenses.dist* 키로 분기. 라벨 키만 저장하고 렌더 시 t() 해석.
+interface DistributionItem {
+  labelKey: string;
+  count: number;
+}
 
 interface Summary {
   totalPackages: string;
   rustCount: number;
   jsCount: number;
-  distribution: { license: string; count: number }[];
+  distribution: DistributionItem[];
 }
 
 const SUMMARY: Summary = {
-  totalPackages: "약 590",
+  totalPackages: "590",
   rustCount: 573,
   jsCount: 17,
   distribution: [
-    { license: "MIT", count: 280 },
-    { license: "Apache-2.0", count: 95 },
-    { license: "MIT OR Apache-2.0", count: 145 },
-    { license: "BSD 계열", count: 35 },
-    { license: "ISC", count: 18 },
-    { license: "MPL-2.0", count: 8 },
-    { license: "기타", count: 9 },
+    { labelKey: "licenses.distMit", count: 280 },
+    { labelKey: "licenses.distApache", count: 95 },
+    { labelKey: "licenses.distMitOrApache", count: 145 },
+    { labelKey: "licenses.distBsd", count: 35 },
+    { labelKey: "licenses.distIsc", count: 18 },
+    { labelKey: "licenses.distMpl", count: 8 },
+    { labelKey: "licenses.distOther", count: 9 },
   ],
 };
 
 export function OpenSourceLicensesModal({ open, onClose }: Props) {
+  const { t } = useTranslation();
   const titleId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -109,12 +120,12 @@ export function OpenSourceLicensesModal({ open, onClose }: Props) {
         setFullText(mod.default);
       })
       .catch(() => {
-        setFullText("라이선스 파일을 로드하지 못했습니다.");
+        setFullText(t('licenses.loadFailed'));
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [showFull, fullText, loading]);
+  }, [showFull, fullText, loading, t]);
 
   // 모달 닫힐 때 전체 보기 상태 초기화
   useEffect(() => {
@@ -146,12 +157,12 @@ export function OpenSourceLicensesModal({ open, onClose }: Props) {
             className="text-base font-semibold text-[var(--color-text-primary)] flex items-center gap-2"
           >
             <Package className="w-4 h-4 text-[var(--color-accent-primary)]" />
-            오픈소스 라이선스
+            {t('licenses.title')}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="라이선스 모달 닫기"
+            aria-label={t('licenses.closeAria')}
             className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none rounded-lg p-1"
           >
             <X className="w-5 h-5" />
@@ -175,11 +186,11 @@ export function OpenSourceLicensesModal({ open, onClose }: Props) {
               onClick={() => setShowFull(false)}
               className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"
             >
-              ← 요약으로 돌아가기
+              {t('licenses.backToSummary')}
             </button>
           ) : (
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              LogLens 는 위 오픈소스 프로젝트들의 기여 덕분에 만들어졌습니다.
+              {t('licenses.footerThanks')}
             </p>
           )}
           <button
@@ -187,7 +198,7 @@ export function OpenSourceLicensesModal({ open, onClose }: Props) {
             onClick={onClose}
             className="px-3 py-1.5 text-xs rounded-md text-[var(--color-text-secondary)] border border-[var(--color-border-default)] hover:bg-[var(--color-bg-hover)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none"
           >
-            닫기
+            {t('licenses.close')}
           </button>
         </div>
       </div>
@@ -198,23 +209,26 @@ export function OpenSourceLicensesModal({ open, onClose }: Props) {
 // --- 요약 뷰 ---
 
 function SummaryView({ onShowFull }: { onShowFull: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="px-6 py-5 space-y-5">
       {/* 총 패키지 수 + 분포 */}
       <section>
         <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
-          LogLens 는 <strong className="text-[var(--color-text-primary)]">{SUMMARY.totalPackages}개</strong> 의 오픈소스 패키지를 사용합니다
-          (Rust crates {SUMMARY.rustCount} + npm production {SUMMARY.jsCount}).
-          모두 상업적 사용을 허용하는 permissive 또는 weak copyleft 라이선스입니다.
+          <Trans
+            i18nKey="licenses.summaryIntro"
+            values={{ total: SUMMARY.totalPackages, rust: SUMMARY.rustCount, js: SUMMARY.jsCount }}
+            components={{ strong: <strong className="text-[var(--color-text-primary)]" /> }}
+          />
         </p>
 
         <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
           {SUMMARY.distribution.map((d) => (
             <div
-              key={d.license}
+              key={d.labelKey}
               className="flex items-baseline justify-between text-xs"
             >
-              <span className="text-[var(--color-text-secondary)]">{d.license}</span>
+              <span className="text-[var(--color-text-secondary)]">{t(d.labelKey)}</span>
               <span className="font-mono text-[var(--color-text-tertiary)]">{d.count}</span>
             </div>
           ))}
@@ -224,26 +238,30 @@ function SummaryView({ onShowFull }: { onShowFull: () => void }) {
       {/* 듀얼 라이선스 채택 */}
       <section className="rounded-lg bg-[var(--color-bg-elevated)] px-4 py-3">
         <p className="text-xs font-medium text-[var(--color-text-primary)] mb-1">
-          듀얼 라이선스 채택
+          {t('licenses.dualLicenseTitle')}
         </p>
         <p className="text-xs text-[var(--color-text-tertiary)] leading-relaxed">
-          <code className="font-mono">jszip</code> 과 <code className="font-mono">r-efi</code> 는
-          MIT/GPL 또는 MIT/LGPL 듀얼 라이선스로 배포됩니다. LogLens 는 두 패키지 모두에서{" "}
-          <strong className="text-[var(--color-text-secondary)]">MIT 라이선스를 선택</strong> 합니다.
+          <Trans
+            i18nKey="licenses.dualLicenseDesc"
+            components={{
+              code: <code className="font-mono" />,
+              strong: <strong className="text-[var(--color-text-secondary)]" />,
+            }}
+          />
         </p>
       </section>
 
       {/* 주요 직접 의존성 */}
       <section>
         <h3 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">
-          주요 직접 의존성 — Frontend
+          {t('licenses.directDepsFrontend')}
         </h3>
         <DepList deps={JS_DIRECT} />
       </section>
 
       <section>
         <h3 className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">
-          주요 직접 의존성 — Backend
+          {t('licenses.directDepsBackend')}
         </h3>
         <DepList deps={RUST_DIRECT} />
       </section>
@@ -256,7 +274,7 @@ function SummaryView({ onShowFull }: { onShowFull: () => void }) {
           className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium bg-[var(--color-accent-primary-subtle-bg)] text-[var(--color-accent-primary)] rounded-lg hover:bg-[var(--color-accent-primary-subtle-bg)] focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none transition-colors"
         >
           <FileText className="w-4 h-4" />
-          전체 라이선스 본문 보기 ({SUMMARY.totalPackages}개)
+          {t('licenses.viewFull', { total: SUMMARY.totalPackages })}
         </button>
       </section>
     </div>
@@ -289,12 +307,13 @@ function DepList({ deps }: { deps: DirectDep[] }) {
 // --- 전체 보기 ---
 
 function FullView({ text, loading }: { text: string | null; loading: boolean }) {
+  const { t } = useTranslation();
   if (loading || text === null) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
         <LoadingSpinner size="md" />
         <p className="text-xs text-[var(--color-text-tertiary)]">
-          라이선스 본문 로드 중...
+          {t('licenses.fullViewLoading')}
         </p>
       </div>
     );

@@ -1,6 +1,7 @@
 // 멀티 AI 비교 — 개별 결과 카드 (Step 5)
 // 상태 별 UI: pending/calling-ai → 스피너, done → 마크다운 미리보기, error → 에러 메시지
 
+import { useTranslation } from 'react-i18next';
 import { CheckCircle, AlertCircle, Trash2, Eye, Download } from 'lucide-react';
 import { AI_PROVIDER_LABELS } from '../../types/settings';
 import type { ComparisonEntry } from '../../services/ai/multiReportGenerator';
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function ComparisonCard({ entry, onViewDetail, onDownload, onRemove }: Props) {
+  const { t } = useTranslation();
   const label = AI_PROVIDER_LABELS[entry.provider];
   const isLoading = entry.status === 'pending' || entry.status === 'preparing' || entry.status === 'calling-ai';
   const isDone = entry.status === 'done';
@@ -52,7 +54,7 @@ export function ComparisonCard({ entry, onViewDetail, onDownload, onRemove }: Pr
         <button
           type="button"
           onClick={onRemove}
-          title="이 카드 제거"
+          title={t('pdf.deleteEntry')}
           className="p-1 rounded text-[var(--color-text-disabled)] hover:text-[var(--color-status-error-fg)] hover:bg-[var(--color-status-error-bg)] transition-colors flex-shrink-0"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -65,11 +67,11 @@ export function ComparisonCard({ entry, onViewDetail, onDownload, onRemove }: Pr
         {isLoading && (
           <div className="text-center py-6">
             <p className="text-xs text-[var(--color-text-secondary)]">
-              {entry.status === 'calling-ai' ? 'AI 분석 중...' : '준비 중...'}
+              {entry.status === 'calling-ai' ? t('pdf.aiAnalyzing') : t('pdf.preparing')}
             </p>
             {elapsed !== null && (
               <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">
-                {elapsed.toFixed(0)}초 경과
+                {t('pdf.elapsedSec', { sec: elapsed.toFixed(0) })}
               </p>
             )}
           </div>
@@ -88,7 +90,7 @@ export function ComparisonCard({ entry, onViewDetail, onDownload, onRemove }: Pr
             {/* 메타 라인 */}
             <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-[var(--color-text-primary)] mb-2">
               {typeof entry.tokensUsed === 'number' && (
-                <span>{entry.tokensUsed.toLocaleString()} 토큰</span>
+                <span>{t('pdf.tokensShort', { count: entry.tokensUsed.toLocaleString() })}</span>
               )}
               {typeof entry.estimatedCostUsd === 'number' && (
                 <>
@@ -99,7 +101,7 @@ export function ComparisonCard({ entry, onViewDetail, onDownload, onRemove }: Pr
               {elapsed !== null && (
                 <>
                   <span className="text-[var(--color-text-disabled)]">·</span>
-                  <span>{elapsed.toFixed(1)}초</span>
+                  <span>{t('pdf.elapsedSecExact', { sec: elapsed.toFixed(1) })}</span>
                 </>
               )}
             </div>
@@ -119,7 +121,7 @@ export function ComparisonCard({ entry, onViewDetail, onDownload, onRemove }: Pr
               </div>
               <p className="mt-1.5 text-[11px] text-[var(--color-accent-primary)] group-hover:text-[var(--color-accent-primary)] inline-flex items-center gap-1 transition-colors">
                 <Eye className="w-3 h-3" />
-                자세히 보기
+                {t('pdf.viewDetail')}
               </p>
             </button>
 
@@ -130,7 +132,7 @@ export function ComparisonCard({ entry, onViewDetail, onDownload, onRemove }: Pr
               className="mt-2 w-full py-1.5 text-xs font-medium text-[var(--color-text-secondary)] border border-[var(--color-border-default)] rounded-lg hover:bg-[var(--color-bg-hover)] transition-colors inline-flex items-center justify-center gap-1.5"
             >
               <Download className="w-3 h-3" />
-              다운로드 (PDF)
+              {t('pdf.downloadPdfShort')}
             </button>
           </>
         )}

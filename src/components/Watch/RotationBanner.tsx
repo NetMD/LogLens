@@ -1,17 +1,20 @@
 // 로그 회전(rotation) 알림 배너 — 5초 자동 소멸 + progress 카운트다운
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useUiStore, type RotationReason } from "../../store/uiStore";
 
-const REASON_LABEL: Record<RotationReason, string> = {
-  FILE_ID_CHANGED: "파일이 교체되었습니다",
-  TRUNCATED: "파일이 잘렸습니다",
-  RECREATED: "파일이 재생성되었습니다",
+// reason → i18n 키 매핑. 렌더 시점에 t() 적용.
+const REASON_KEY: Record<RotationReason, string> = {
+  FILE_ID_CHANGED: "realtime.rotationFileIdChanged",
+  TRUNCATED: "realtime.rotationTruncated",
+  RECREATED: "realtime.rotationRecreated",
 };
 
 const DURATION_MS = 5000;
 
 export function RotationBanner() {
+  const { t } = useTranslation();
   const banner = useUiStore((s) => s.rotationBanner);
   const dismiss = useUiStore((s) => s.dismissRotationBanner);
   const [progress, setProgress] = useState(100);
@@ -47,18 +50,18 @@ export function RotationBanner() {
       <div className="flex items-start gap-3">
         <span aria-hidden="true">!</span>
         <div className="flex-1">
-          <p className="font-medium">{REASON_LABEL[banner.reason]}</p>
+          <p className="font-medium">{t(REASON_KEY[banner.reason])}</p>
           <p className="text-xs text-[var(--color-status-warn-fg)]/80 mt-0.5">
-            새 파일로 계속 감시합니다.
+            {t('realtime.rotationContinue')}
           </p>
         </div>
         <button
           type="button"
           onClick={dismiss}
           className="text-[var(--color-status-warn-fg)]/70 hover:text-[var(--color-status-warn-fg)] text-xs"
-          aria-label="알림 닫기"
+          aria-label={t('realtime.dismissNotification')}
         >
-          닫기
+          {t('common.close')}
         </button>
       </div>
       <div className="mt-2 h-0.5 bg-[var(--color-status-warn-border)] rounded overflow-hidden">

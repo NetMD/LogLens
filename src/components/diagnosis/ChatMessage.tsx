@@ -1,6 +1,7 @@
 // 채팅 메시지 버블 (react-markdown + 구문 강조)
 
 import ReactMarkdown from 'react-markdown';
+import { useTranslation } from 'react-i18next';
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import java from 'react-syntax-highlighter/dist/esm/languages/prism/java';
 import json from 'react-syntax-highlighter/dist/esm/languages/prism/json';
@@ -22,10 +23,13 @@ interface Props {
 }
 
 export function ChatMessage({ data, isStreamingMessage, streamingContent }: Props) {
+  const { t, i18n } = useTranslation();
   const [showFullResult, setShowFullResult] = useState(false);
 
   const content = isStreamingMessage ? (streamingContent ?? '') : data.content;
-  const timestamp = new Date(data.timestamp).toLocaleTimeString('ko-KR', {
+  // 시간 표시는 현재 UI 언어 기준 locale 사용
+  const locale = i18n.language === 'en' ? 'en-US' : 'ko-KR';
+  const timestamp = new Date(data.timestamp).toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -39,20 +43,20 @@ export function ChatMessage({ data, isStreamingMessage, streamingContent }: Prop
 
     return (
       <div className="mr-auto max-w-[80%] bg-[var(--color-accent-primary-subtle-bg)] border border-[var(--color-accent-primary)] rounded-lg rounded-bl-sm px-3 py-2">
-        <p className="text-xs text-[var(--color-accent-primary)] font-medium mb-1">이전 단방향 분석 결과를 참고합니다.</p>
+        <p className="text-xs text-[var(--color-accent-primary)] font-medium mb-1">{t('aiDiagnosis.previousResultBubble')}</p>
         {parsedResult && (
           <button
             onClick={() => setShowFullResult(!showFullResult)}
             className="text-xs text-[var(--color-accent-primary)] hover:text-[var(--color-accent-primary)] underline"
           >
-            {showFullResult ? '요약 보기' : '전체 결과 보기'}
+            {showFullResult ? t('aiDiagnosis.showSummaryResult') : t('aiDiagnosis.showFullResult')}
           </button>
         )}
         {showFullResult && parsedResult && (
           <div className="mt-2 text-xs text-[var(--color-text-secondary)] space-y-1">
-            <p>심각도: {parsedResult.severity} - {parsedResult.severityReason}</p>
-            <p>원인: {parsedResult.rootCause}</p>
-            <p>해결: {parsedResult.solution?.description}</p>
+            <p>{t('aiDiagnosis.severityLabel')}: {parsedResult.severity} - {parsedResult.severityReason}</p>
+            <p>{t('aiDiagnosis.causeLabel')}: {parsedResult.rootCause}</p>
+            <p>{t('aiDiagnosis.solveLabel')}: {parsedResult.solution?.description}</p>
           </div>
         )}
         <span className="text-[10px] text-[var(--color-text-disabled)] block mt-1">{timestamp}</span>

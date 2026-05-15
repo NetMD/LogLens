@@ -4,6 +4,7 @@
 // ESC / 배경 클릭으로 취소, aria-modal 다이얼로그
 
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Info, AlertTriangle } from 'lucide-react';
 
 export type WarningVariant = 'small' | 'large';
@@ -48,6 +49,7 @@ export function FileSizeWarningDialog({
   onContinue,
   onCancel,
 }: Props) {
+  const { t } = useTranslation();
   const cancelBtnRef = useRef<HTMLButtonElement | null>(null);
 
   // body 스크롤 lock
@@ -87,12 +89,8 @@ export function FileSizeWarningDialog({
   const Icon = isLarge ? AlertTriangle : Info;
   const iconColorClass = isLarge ? 'text-[var(--color-status-warn-fg)]' : 'text-[var(--color-accent-primary)]';
   const iconBgClass = isLarge ? 'bg-[var(--color-status-warn-bg)]' : 'bg-[var(--color-accent-primary-subtle-bg)]/40';
-  const title = isLarge
-    ? '파일이 5MB 이상입니다'
-    : '파일이 1MB 미만입니다';
-  const description = isLarge
-    ? '요약 모드로 분석되어 스택트레이스와 소스코드가 리포트에서 제외됩니다. 계속 진행하시겠습니까?'
-    : '로그 양이 적어 AI 분석 품질이 낮을 수 있습니다. 계속 진행하시겠습니까?';
+  const title = isLarge ? t('pdf.warningLargeTitle') : t('pdf.warningSmallTitle');
+  const description = isLarge ? t('pdf.warningLargeDesc') : t('pdf.warningSmallDesc');
 
   // large variant일 때 "계속 진행" 버튼은 상대적으로 덜 강조 (secondary 스타일)
   const continueBtnClass = isLarge
@@ -136,7 +134,7 @@ export function FileSizeWarningDialog({
             {/* 파일 정보 */}
             <div className="mt-3 text-xs text-[var(--color-text-tertiary)] bg-[var(--color-bg-elevated)] rounded px-2 py-1.5 truncate">
               <span className="text-[var(--color-text-secondary)]">
-                {fileName || '(이름 없음)'}
+                {fileName || t('pdf.fileUnnamed')}
               </span>
               <span className="text-[var(--color-text-disabled)]"> · </span>
               <span>{formatSize(fileSize)}</span>
@@ -151,14 +149,14 @@ export function FileSizeWarningDialog({
             onClick={onCancel}
             className="px-3 py-1.5 text-xs rounded-md text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none motion-safe:transition-colors"
           >
-            취소
+            {t('pdf.cancel')}
           </button>
           <button
             type="button"
             onClick={onContinue}
             className={`px-3 py-1.5 text-xs rounded-md focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none motion-safe:transition-colors ${continueBtnClass}`}
           >
-            계속 진행
+            {t('pdf.continueAction')}
           </button>
         </div>
       </div>

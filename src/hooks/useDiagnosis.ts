@@ -14,6 +14,7 @@ import { useLogStore } from '../store/logStore';
 import { getActiveApiKey, isLocalProvider } from '../types/settings';
 import { getAiProvider } from '../services/ai/providers/index';
 import { AiApiError } from '../services/ai/types';
+import i18n from '../i18n';
 import { buildUnidirectionalPrompt, buildConversationalSystemPrompt } from '../services/diagnosis/promptBuilder';
 import { parseDiagnosisResponse } from '../services/diagnosis/jsonParser';
 import { assertNoApiKeyInPrompt } from '../services/diagnosis/sanitize';
@@ -415,7 +416,7 @@ export function useDiagnosis(input: DiagnosisInput | null): UseDiagnosisReturn {
       } else {
         dispatch({
           type: 'ERROR',
-          error: new AiApiError('NETWORK_ERROR', (err as Error).message ?? '알 수 없는 오류'),
+          error: new AiApiError('NETWORK_ERROR', (err as Error).message ?? i18n.t('common.unknownError')),
         });
       }
     }
@@ -507,8 +508,8 @@ export function useDiagnosis(input: DiagnosisInput | null): UseDiagnosisReturn {
       if (controller.signal.aborted) return;
 
       const errorMsg = err instanceof AiApiError
-        ? (err.type === 'ABORTED' ? '' : `오류: ${err.message}`)
-        : '응답이 불완전합니다. 네트워크 연결을 확인해주세요.';
+        ? (err.type === 'ABORTED' ? '' : i18n.t('aiDiagnosis.errorPrefix', { message: err.message }))
+        : i18n.t('aiDiagnosis.incompleteResponse');
 
       if (errorMsg) {
         dispatch({ type: 'STREAMING_ERROR', errorMsg });

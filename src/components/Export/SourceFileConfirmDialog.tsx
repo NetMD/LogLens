@@ -2,6 +2,7 @@
 // 프로젝트 루트가 설정된 상태에서 AI 리포트 생성 시,
 // 전달될 소스 파일 목록을 미리 보여주고 사용자 확인을 받는다.
 
+import { useTranslation } from 'react-i18next';
 import { FileCode2, AlertTriangle } from 'lucide-react';
 import type { AiProvider } from '../../types/settings';
 import { isLocalProvider } from '../../types/settings';
@@ -23,6 +24,7 @@ export function SourceFileConfirmDialog({
   onConfirm,
   onCancel,
 }: Props) {
+  const { t } = useTranslation();
   if (!open) return null;
 
   const isLocal = isLocalProvider(provider);
@@ -47,10 +49,10 @@ export function SourceFileConfirmDialog({
             </div>
             <div>
               <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
-                소스 코드가 AI에 전달됩니다
+                {t('pdf.sourceTransferTitle')}
               </h3>
               <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
-                스택트레이스와 관련된 소스 파일의 일부(해당 라인 ±10줄)가 분석 데이터에 포함됩니다.
+                {t('pdf.sourceTransferDesc')}
               </p>
             </div>
           </div>
@@ -61,7 +63,7 @@ export function SourceFileConfirmDialog({
           {loading ? (
             <div className="flex items-center gap-2 text-xs text-[var(--color-text-tertiary)] py-3">
               <div className="w-3.5 h-3.5 border-2 border-[var(--color-accent-primary)] border-t-transparent rounded-full animate-spin" />
-              파일 목록 조회 중...
+              {t('pdf.loadingFileList')}
             </div>
           ) : files.length > 0 ? (
             <div className="bg-[var(--color-bg-base)] border border-[var(--color-border-default)] rounded-lg p-3 max-h-40 overflow-y-auto">
@@ -79,7 +81,7 @@ export function SourceFileConfirmDialog({
             </div>
           ) : (
             <p className="text-xs text-[var(--color-text-tertiary)] py-2">
-              관련 소스 파일을 찾지 못했습니다. 소스 코드 없이 생성됩니다.
+              {t('pdf.noSourceFiles')}
             </p>
           )}
         </div>
@@ -91,14 +93,14 @@ export function SourceFileConfirmDialog({
               <div className="flex items-start gap-2 text-xs rounded-lg px-3 py-2 bg-[var(--color-status-success-bg)]">
                 <span className="flex-shrink-0 mt-0.5">&#x2705;</span>
                 <span className="text-[var(--color-status-success-fg)] leading-relaxed">
-                  로컬 LLM을 사용 중이므로 소스코드가 외부로 전송되지 않습니다.
+                  {t('pdf.sourceTransferLocal')}
                 </span>
               </div>
             ) : (
               <div className="flex items-start gap-2 text-xs rounded-lg px-3 py-2 bg-[var(--color-status-warn-bg)]">
                 <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-[var(--color-status-warn-fg)] dark:text-[var(--color-status-warn-fg)]" />
                 <span className="text-[var(--color-status-warn-fg)] leading-relaxed">
-                  위 파일이 AI 서버로 전송됩니다. 민감 정보가 포함되지 않았는지 확인해 주세요.
+                  {t('pdf.sourceTransferRemote')}
                 </span>
               </div>
             )}
@@ -112,7 +114,7 @@ export function SourceFileConfirmDialog({
             onClick={onCancel}
             className="px-4 py-2 text-sm text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] border border-[var(--color-border-default)] rounded-lg hover:bg-[var(--color-bg-hover)] transition-colors"
           >
-            취소
+            {t('pdf.cancel')}
           </button>
           <button
             type="button"
@@ -120,7 +122,7 @@ export function SourceFileConfirmDialog({
             disabled={loading}
             className="px-4 py-2 text-sm font-medium bg-[var(--color-status-success-fg)] hover:bg-[var(--color-status-success-fg)] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {files.length > 0 ? '진행' : '소스 코드 없이 진행'}
+            {files.length > 0 ? t('pdf.proceed') : t('pdf.proceedWithoutSource')}
           </button>
         </div>
       </div>

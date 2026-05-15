@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useLogStore } from "../../store/logStore";
 import { useUiStore } from "../../store/uiStore";
@@ -8,21 +9,24 @@ import type { LogLevel } from "../../utils/logParser";
 
 const DEBUG_LEVELS: LogLevel[] = ["DEBUG", "TRACE"];
 
-function getLevelFilterOptions(showDebug: boolean): { label: string; value: LogLevel | "ALL" }[] {
-  const base: { label: string; value: LogLevel | "ALL" }[] = [
-    { label: "전체", value: "ALL" },
-    { label: "ERROR", value: "ERROR" },
-    { label: "WARN", value: "WARN" },
-    { label: "INFO", value: "INFO" },
+// label 은 i18n 키 문자열. 렌더 시점에 t() 변환 — useMemo deps 에 t() 결과 넣지 않음 (큐레이터 제약 #3).
+function getLevelFilterOptions(showDebug: boolean): { labelKey: string; value: LogLevel | "ALL" }[] {
+  const base: { labelKey: string; value: LogLevel | "ALL" }[] = [
+    { labelKey: "stackTrace.allLevels", value: "ALL" },
+    { labelKey: "errorPattern.errors", value: "ERROR" },
+    { labelKey: "errorPattern.warnings", value: "WARN" },
+    { labelKey: "errorPattern.info", value: "INFO" },
   ];
   if (showDebug) {
-    base.push({ label: "DEBUG", value: "DEBUG" });
-    base.push({ label: "TRACE", value: "TRACE" });
+    base.push({ labelKey: "errorPattern.debug", value: "DEBUG" });
+    base.push({ labelKey: "errorPattern.trace", value: "TRACE" });
   }
   return base;
 }
 
 export function StackTraceView() {
+  // [큐레이터 제약 P0] t() 호출은 컴포넌트 최상단에서만. useMemo deps 에는 t 자체도 포함 금지.
+  const { t } = useTranslation();
   // selector 분리 — store 의 다른 필드(progress 등) 변경으로 인한 리렌더 차단
   const entries = useLogStore((s) => s.entries);
   const isParsing = useLogStore((s) => s.isParsing);
@@ -99,7 +103,7 @@ export function StackTraceView() {
                   : "bg-[var(--color-bg-elevated)] text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-hover)]"
               }`}
             >
-              {opt.label}
+              {t(opt.labelKey)}
             </button>
           ))}
         </div>
@@ -115,7 +119,7 @@ export function StackTraceView() {
           </svg>
           <input
             type="text"
-            placeholder="메시지, 클래스, 예외 검색..."
+            placeholder={t('fileAnalysis.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 text-xs bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] rounded-md text-[var(--color-text-primary)] placeholder-[var(--color-text-disabled)] focus:outline-none focus:border-[var(--color-accent-primary)] focus:ring-2 focus:ring-[var(--color-border-focus)]/30"
@@ -124,8 +128,11 @@ export function StackTraceView() {
 
         <span className="text-xs text-[var(--color-text-disabled)] ml-auto">
           {isParsing
-            ? `${entries.length.toLocaleString()} 건 수집 중`
-            : `${filtered.length.toLocaleString()} / ${entries.length.toLocaleString()} 건`}
+            ? t('stackTrace.collecting', { count: entries.length.toLocaleString() })
+            : t('stackTrace.filteredOf', {
+                filtered: filtered.length.toLocaleString(),
+                total: entries.length.toLocaleString(),
+              })}
         </span>
       </div>
 
@@ -133,14 +140,14 @@ export function StackTraceView() {
       <div ref={parentRef} className="flex-1 overflow-y-auto px-4 py-4">
         {isParsing ? (
           <div className="flex flex-col items-center justify-center h-32 gap-2 text-sm text-[var(--color-text-disabled)]">
-            <div>파싱 진행 중… {progress}%</div>
-            <div className="text-xs">완료되면 결과가 표시됩니다.</div>
+            <div>{t('stackTrace.parseProgress', { progress })}</div>
+            <div className="text-xs">{t('stackTrace.parseProgressDesc')}</div>
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-sm text-[var(--color-text-disabled)]">
             {searchQuery || levelFilter !== "ALL"
-              ? "검색 결과가 없습니다"
-              : "로그 엔트리가 없습니다"}
+              ? t('stackTrace.noResults')
+              : t('fileAnalysis.noEntries')}
           </div>
         ) : (
           <div

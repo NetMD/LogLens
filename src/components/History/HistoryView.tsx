@@ -2,6 +2,7 @@
 // 비교 선택 기능: 2개 항목 선택 → 비교 화면 이동
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { GitCompare, X } from "lucide-react";
@@ -23,6 +24,7 @@ import { LoadingSpinner } from "../shared/LoadingSpinner";
 import { ERROR_LABELS } from "../../constants/errorLabels";
 
 export function HistoryView() {
+  const { t } = useTranslation();
   const entries = useHistoryStore((s) => s.entries);
   const selectedId = useHistoryStore((s) => s.selectedId);
   const isLoaded = useHistoryStore((s) => s.isLoaded);
@@ -79,7 +81,7 @@ export function HistoryView() {
       try {
         await loadFile(entry.filePath, { preserveProTab: true });
       } catch (e) {
-        toast.error('파일을 열 수 없습니다.', { description: String(e) });
+        toast.error(t('history.openFailed'), { description: String(e) });
       }
       return;
     }
@@ -139,24 +141,24 @@ export function HistoryView() {
     const bExists = checks[1].status === "fulfilled";
 
     if (!aExists && !bExists) {
-      toast.error("선택한 파일들을 찾을 수 없습니다.", {
-        description: "파일이 이동되었거나 삭제되었을 수 있습니다.",
+      toast.error(t('history.filesNotFound'), {
+        description: t('history.filesNotFoundDesc'),
       });
       setIsNavigating(false);
       return;
     }
 
     if (!aExists) {
-      toast.error(`파일을 찾을 수 없습니다: ${entryA.fileName}`, {
-        description: "파일이 이동되었거나 삭제되었을 수 있습니다.",
+      toast.error(t('history.fileNotFoundOne', { name: entryA.fileName }), {
+        description: t('history.filesNotFoundDesc'),
       });
       setIsNavigating(false);
       return;
     }
 
     if (!bExists) {
-      toast.error(`파일을 찾을 수 없습니다: ${entryB.fileName}`, {
-        description: "파일이 이동되었거나 삭제되었을 수 있습니다.",
+      toast.error(t('history.fileNotFoundOne', { name: entryB.fileName }), {
+        description: t('history.filesNotFoundDesc'),
       });
       setIsNavigating(false);
       return;
@@ -204,10 +206,10 @@ export function HistoryView() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h1 className="text-base font-semibold text-[var(--color-text-primary)]">
-              분석 히스토리
+              {t('history.title')}
             </h1>
             <p className="text-sm text-[var(--color-text-tertiary)] mt-1">
-              과거에 분석한 로그 파일 기록을 확인합니다.
+              {t('history.desc')}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -225,7 +227,7 @@ export function HistoryView() {
                   }`}
                 >
                   <GitCompare className="w-3.5 h-3.5" />
-                  비교하기 ({selection.selectedIds.length}/2)
+                  {t('history.compareWithCount', { current: selection.selectedIds.length, max: 2 })}
                 </button>
                 <button
                   type="button"
@@ -233,7 +235,7 @@ export function HistoryView() {
                   className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[var(--color-border-default)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none"
                 >
                   <X className="w-3.5 h-3.5" />
-                  선택 해제
+                  {t('history.clearSelection')}
                 </button>
               </>
             )}
@@ -244,7 +246,7 @@ export function HistoryView() {
                 onClick={() => setShowClearConfirm(true)}
                 className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-status-error-fg)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none rounded px-1 py-0.5"
               >
-                전체 삭제
+                {t('history.deleteAll')}
               </button>
             )}
           </div>
@@ -256,34 +258,34 @@ export function HistoryView() {
             <thead>
               <tr className="bg-[var(--color-bg-elevated)]">
                 <th scope="col" className="w-16">
-                  <span className="sr-only">선택</span>
+                  <span className="sr-only">{t('history.select')}</span>
                 </th>
                 <th
                   scope="col"
                   className="text-left px-4 py-2.5 text-xs text-[var(--color-text-tertiary)] font-medium"
                 >
-                  날짜
+                  {t('history.date')}
                 </th>
                 <th
                   scope="col"
                   className="text-left px-4 py-2.5 text-xs text-[var(--color-text-tertiary)] font-medium"
                 >
-                  파일명
+                  {t('history.fileName')}
                 </th>
                 <th
                   scope="col"
                   className="text-right px-4 py-2.5 text-xs text-[var(--color-text-tertiary)] font-medium"
                 >
-                  ERROR
+                  {t('history.errorHeader')}
                 </th>
                 <th
                   scope="col"
                   className="text-right px-4 py-2.5 text-xs text-[var(--color-text-tertiary)] font-medium"
                 >
-                  WARN
+                  {t('history.warnHeader')}
                 </th>
                 <th scope="col" className="w-20">
-                  <span className="sr-only">작업</span>
+                  <span className="sr-only">{t('history.actions')}</span>
                 </th>
               </tr>
             </thead>
@@ -313,9 +315,9 @@ export function HistoryView() {
       {/* 전체 삭제 확인 다이얼로그 */}
       <ConfirmDialog
         open={showClearConfirm}
-        title="히스토리 전체 삭제"
+        title={t('history.deleteConfirmTitle')}
         description={ERROR_LABELS.HISTORY_CLEAR_CONFIRM}
-        confirmLabel="전체 삭제"
+        confirmLabel={t('history.deleteAll')}
         destructive={true}
         onConfirm={() => {
           clear();

@@ -21,6 +21,7 @@ import {
   type StoppedPayload,
   type WatchErrorPayload,
 } from "../shared/watchEvents";
+import i18n from "../i18n";
 import { useLogStore } from "../store/logStore";
 import { useSettingsStore } from "../store/settingsStore";
 import { useUiStore } from "../store/uiStore";
@@ -28,13 +29,13 @@ import { parseBatch, resetParser } from "../utils/logParser";
 import type { LogEntry } from "../utils/logParser";
 import { ToastRateLimiter } from "../utils/toastRateLimiter";
 
-// log-watch-error 사용자 친화 메시지 매핑 (Security M-2)
-const ERROR_LABELS: Record<string, string> = {
-  FILE_NOT_FOUND: "파일을 찾을 수 없습니다",
-  PERMISSION_DENIED: "파일 접근 권한이 없습니다",
-  WATCHER_INIT_FAILED: "실시간 감시를 초기화할 수 없습니다",
-  IO_ERROR: "파일 읽기 오류",
-  INVALID_PATH: "잘못된 파일 경로",
+// log-watch-error 사용자 친화 메시지 i18n key 매핑 (Security M-2). 사용 시점에 i18n.t() 적용.
+const ERROR_LABEL_KEYS: Record<string, string> = {
+  FILE_NOT_FOUND: "realtime.errorFileNotFound",
+  PERMISSION_DENIED: "realtime.errorPermissionDenied",
+  WATCHER_INIT_FAILED: "realtime.errorWatcherInit",
+  IO_ERROR: "realtime.errorIo",
+  INVALID_PATH: "realtime.errorInvalidPath",
 };
 
 // droppedCount 토스트 rate limit 최소 간격 (ms)
@@ -87,7 +88,7 @@ export function useLogWatchController(): void {
               const key = entry.exceptionClass ?? entry.logger ?? "ERROR";
               if (rateLimiter.allow(key)) {
                 toast.error(entry.exceptionClass ?? "ERROR", {
-                  description: "메인 뷰에서 전체 로그를 확인하세요.",
+                  description: i18n.t("realtime.toastErrorDescription"),
                 });
               }
             }
@@ -108,7 +109,7 @@ export function useLogWatchController(): void {
         if (now - droppedToastState.lastAt >= DROPPED_TOAST_MIN_INTERVAL_MS) {
           droppedToastState.lastAt = now;
           toast.warning(
-            `일부 로그가 유실되었습니다 (${payload.droppedCount}건)`
+            i18n.t("realtime.droppedLogs", { count: payload.droppedCount })
           );
         }
       }
@@ -142,8 +143,8 @@ export function useLogWatchController(): void {
             const sessionId = useLogStore.getState().watchSessionId;
             if (sessionId && event.payload.sessionId !== sessionId) return;
             // Security M-2: 에러 코드 기반 사용자 친화 메시지 매핑
-            const label =
-              ERROR_LABELS[event.payload.error.code] ?? "실시간 감시 오류";
+            const labelKey = ERROR_LABEL_KEYS[event.payload.error.code];
+            const label = labelKey ? i18n.t(labelKey) : i18n.t("realtime.errorWatchGeneric");
             setWatchError(label);
             toast.error(label);
             if (event.payload.fatal) {
@@ -227,7 +228,7 @@ export function useLogWatchActions(): UseLogWatchActions {
       if (!selected || typeof selected !== "string") return null;
       return selected;
     } catch (e) {
-      toast.error("파일 선택 실패", { description: String(e) });
+      toast.error(i18n.t("sidebar.fileSelectFailed"), { description: String(e) });
       return null;
     }
   }, []);
@@ -242,7 +243,7 @@ export function useLogWatchActions(): UseLogWatchActions {
         await invoke("get_file_metadata", { path });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        toast.error("파일을 열 수 없습니다", { description: msg });
+        toast.error(i18n.t("sidebar.fileOpenFailed"), { description: msg });
         return;
       }
 
@@ -292,7 +293,7 @@ export function useLogWatchActions(): UseLogWatchActions {
         const msg = e instanceof Error ? e.message : String(e);
         setWatchError(msg);
         setWatchMode("idle");
-        toast.error("감시 시작 실패", { description: msg });
+        toast.error(i18n.t("sidebar.watchStartFailed"), { description: msg });
       }
     },
     [

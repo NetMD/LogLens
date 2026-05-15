@@ -1,7 +1,11 @@
 // AI 분석 패널 (Pro 기능 — P1 구현 예정)
 // 현재는 UI 구조만 제공
+// R12 i18n: aiDiagnosis.panelTitle / panelDesc 키로 한국어/영어 분기
+
+import { useTranslation } from 'react-i18next';
 
 export function AiAnalysisView() {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
       <div className="w-12 h-12 rounded-xl bg-[var(--color-accent-primary-subtle-bg)] flex items-center justify-center">
@@ -10,9 +14,9 @@ export function AiAnalysisView() {
         </svg>
       </div>
       <div>
-        <p className="text-sm font-medium text-[var(--color-text-secondary)]">AI 에러 원인 분석</p>
+        <p className="text-sm font-medium text-[var(--color-text-secondary)]">{t('aiDiagnosis.panelTitle')}</p>
         <p className="text-xs text-[var(--color-text-disabled)] mt-1 max-w-xs">
-          OpenAI 또는 Claude API 키를 사용하여 에러의 원인을 자동으로 분석합니다 (P1 예정)
+          {t('aiDiagnosis.panelDesc')}
         </p>
       </div>
     </div>

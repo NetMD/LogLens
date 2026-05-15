@@ -9,6 +9,7 @@ import { useUiStore } from "../store/uiStore";
 import { useExportStore } from "../store/exportStore";
 import { useHistory } from "./useHistory";
 import { toHistorySummary } from "../types/history";
+import i18n from "../i18n";
 
 interface FileReadChunk {
   lines: string[];
@@ -206,7 +207,7 @@ export function useLogFile() {
       } else if (event.event === "Error") {
         // 에러 시에도 잔여 throttle 버퍼는 사용자에게 보여주는 것이 디버깅에 유리 (부분 결과 보존)
         flushAppendBuffer();
-        setParseError(event.data.message ?? "알 수 없는 오류");
+        setParseError(event.data.message ?? i18n.t("common.unknownError"));
       }
     };
 

@@ -1,6 +1,7 @@
 // 컨텍스트 범위 선택기 (라디오 + 용량 체크)
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 interface Props {
@@ -26,6 +27,7 @@ export function ContextSelector({
   isPayloadTooLarge,
   isAnalyzing,
 }: Props) {
+  const { t } = useTranslation();
   const [showWarning, setShowWarning] = useState(false);
   const sizeMB = payloadSize / (1024 * 1024);
 
@@ -49,7 +51,7 @@ export function ContextSelector({
   return (
     <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] rounded-lg p-4">
       <h3 className="text-xs font-semibold text-[var(--color-text-tertiary)] uppercase tracking-wider mb-3">
-        컨텍스트 범위
+        {t('aiDiagnosis.contextRangeHeader')}
       </h3>
 
       <div className="space-y-2">
@@ -68,10 +70,10 @@ export function ContextSelector({
             className="mt-0.5 w-4 h-4 accent-blue-500"
           />
           <div>
-            <span className="text-sm text-[var(--color-text-primary)]">선택한 에러만</span>
-            <span className="text-xs text-[var(--color-text-disabled)] ml-1">(권장)</span>
+            <span className="text-sm text-[var(--color-text-primary)]">{t('aiDiagnosis.selectedOnly')}</span>
+            <span className="text-xs text-[var(--color-text-disabled)] ml-1">{t('aiDiagnosis.selectedOnlyBadge')}</span>
             <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
-              해당 예외 스택트레이스 + 전후 로그
+              {t('aiDiagnosis.selectedOnlyDesc')}
             </p>
           </div>
         </label>
@@ -91,19 +93,19 @@ export function ContextSelector({
             className="mt-0.5 w-4 h-4 accent-blue-500"
           />
           <div>
-            <span className="text-sm text-[var(--color-text-primary)]">전체 로그 포함</span>
+            <span className="text-sm text-[var(--color-text-primary)]">{t('aiDiagnosis.fullLog')}</span>
             <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
-              전체 로그 파일 컨텍스트
+              {t('aiDiagnosis.fullLogDesc')}
             </p>
             {scope === 'full' && (
               <p className="text-xs text-[var(--color-text-disabled)] mt-1">
-                예상 크기: {formatSize(payloadSize)}
-                {estimatedCost > 0 && ` | 예상 비용: ~$${estimatedCost.toFixed(4)}`}
+                {t('aiDiagnosis.contextEstSize')}: {formatSize(payloadSize)}
+                {estimatedCost > 0 && ` | ${t('aiDiagnosis.contextEstCost')}: ~$${estimatedCost.toFixed(4)}`}
               </p>
             )}
             {isPayloadTooLarge && (
               <p className="text-xs text-[var(--color-status-error-fg)] mt-1">
-                전체 로그가 {formatSize(payloadSize)}로 너무 큽니다. 선택한 에러만 분석할 수 있습니다.
+                {t('aiDiagnosis.contextTooLarge', { size: formatSize(payloadSize) })}
               </p>
             )}
           </div>
@@ -113,10 +115,10 @@ export function ContextSelector({
       {/* 1~5MB 용량 경고 다이얼로그 */}
       <ConfirmDialog
         open={showWarning}
-        title="전체 로그 포함 경고"
-        description={`전체 로그가 ${formatSize(payloadSize)}입니다. 토큰이 많이 사용될 수 있습니다. 예상 비용: ~$${estimatedCost.toFixed(4)}`}
-        confirmLabel="진행"
-        cancelLabel="취소"
+        title={t('aiDiagnosis.contextWarnTitle')}
+        description={t('aiDiagnosis.contextWarnDesc', { size: formatSize(payloadSize), cost: estimatedCost.toFixed(4) })}
+        confirmLabel={t('aiDiagnosis.proceed')}
+        cancelLabel={t('aiDiagnosis.cancel')}
         onConfirm={() => {
           setShowWarning(false);
           onScopeChange('full');

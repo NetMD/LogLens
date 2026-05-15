@@ -4,6 +4,7 @@
 // - 외부 라이브러리 없음
 
 import { Fragment, type ReactNode, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PRINT_BORDER, PRINT_SURFACE, PRINT_TEXT } from '../../constants/printColors';
 
 interface Props {
@@ -203,6 +204,7 @@ export function PrintableAiReport({
   fileName,
   generatedAt,
 }: Props) {
+  const { t } = useTranslation();
   const blocks = useMemo(() => parseMarkdown(markdown), [markdown]);
 
   return (
@@ -229,7 +231,7 @@ export function PrintableAiReport({
               LogLens AI Report
             </span>
             <span style={{ fontSize: '10px', color: PRINT_TEXT.tertiary }}>
-              생성일: {formatDateTime(generatedAt)}
+              {t('pdf.generatedAtLabel')} {formatDateTime(generatedAt)}
             </span>
           </div>
           <h1
@@ -244,7 +246,7 @@ export function PrintableAiReport({
           </h1>
           {fileName && (
             <div style={{ fontSize: '11px', color: PRINT_TEXT.tertiary, marginTop: '4px' }}>
-              파일: {fileName}
+              {t('pdf.fileLabel')} {fileName}
             </div>
           )}
         </div>
@@ -406,7 +408,7 @@ export function PrintableAiReport({
             textAlign: 'center',
           }}
         >
-          LogLens · AI 기반 리포트
+          {t('pdf.aiReportFooter')}
         </div>
       </div>
     </div>

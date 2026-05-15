@@ -1,9 +1,12 @@
+import { useTranslation } from "react-i18next";
+
 interface Props {
   progress: number; // 0-100
   fileName: string;
 }
 
 export function ProgressBar({ progress, fileName }: Props) {
+  const { t } = useTranslation();
   return (
     <div className="w-full max-w-md space-y-3">
       <div className="flex items-center justify-between text-sm">
@@ -16,7 +19,7 @@ export function ProgressBar({ progress, fileName }: Props) {
           style={{ width: `${progress}%` }}
         />
       </div>
-      <p className="text-xs text-[var(--color-text-tertiary)] text-center">로그 파일 파싱 중...</p>
+      <p className="text-xs text-[var(--color-text-tertiary)] text-center">{t('fileAnalysis.parsing')}</p>
     </div>
   );
 }

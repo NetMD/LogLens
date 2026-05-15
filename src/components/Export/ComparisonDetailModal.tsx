@@ -2,6 +2,7 @@
 // PrintableAiReport 의 parseMarkdown / renderInline 을 재사용해 동일한 마크다운 렌더링을 제공한다.
 
 import { Fragment, useId, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Download } from 'lucide-react';
 import { AI_PROVIDER_LABELS } from '../../types/settings';
 import { parseMarkdown, renderInline } from './PrintableAiReport';
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function ComparisonDetailModal({ entry, onClose, onDownload }: Props) {
+  const { t } = useTranslation();
   const label = AI_PROVIDER_LABELS[entry.provider];
   const titleId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -32,14 +34,14 @@ export function ComparisonDetailModal({ entry, onClose, onDownload }: Props) {
   // 메타 정보
   const metaParts: string[] = [label, entry.model];
   if (typeof entry.tokensUsed === 'number') {
-    metaParts.push(`${entry.tokensUsed.toLocaleString()} 토큰`);
+    metaParts.push(t('pdf.tokensShort', { count: entry.tokensUsed.toLocaleString() }));
   }
   if (typeof entry.estimatedCostUsd === 'number') {
     metaParts.push(`~$${entry.estimatedCostUsd.toFixed(4)}`);
   }
   if (entry.startedAt !== null && entry.completedAt !== null) {
     const sec = ((entry.completedAt - entry.startedAt) / 1000).toFixed(1);
-    metaParts.push(`${sec}초`);
+    metaParts.push(t('pdf.elapsedSecExact', { sec }));
   }
 
   return (
@@ -72,7 +74,7 @@ export function ComparisonDetailModal({ entry, onClose, onDownload }: Props) {
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)] transition-colors flex-shrink-0"
-            aria-label="닫기"
+            aria-label={t('pdf.closeButton')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -169,14 +171,14 @@ export function ComparisonDetailModal({ entry, onClose, onDownload }: Props) {
             className="px-4 py-2 text-sm font-medium bg-[var(--color-button-primary-bg)] hover:bg-[var(--color-button-primary-bg-hover)] text-white rounded-lg transition-colors inline-flex items-center gap-1.5"
           >
             <Download className="w-3.5 h-3.5" />
-            다운로드 (PDF)
+            {t('pdf.downloadPdfShort')}
           </button>
           <button
             type="button"
             onClick={onClose}
             className="px-4 py-2 text-sm text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] border border-[var(--color-border-default)] rounded-lg hover:bg-[var(--color-bg-hover)] transition-colors"
           >
-            닫기
+            {t('pdf.closeButton')}
           </button>
         </div>
       </div>

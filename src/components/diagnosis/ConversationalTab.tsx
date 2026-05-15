@@ -1,6 +1,7 @@
 // 대화형 분석 탭 (채팅 UI + 스트리밍 + 추천 질문)
 
 import { useRef, useEffect, useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { DiagnosisInput, ChatMessageData } from '../../types/diagnosis';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
@@ -25,13 +26,14 @@ export function ConversationalTab({
   onSendMessage,
   onCancelStreaming: _onCancelStreaming,
 }: Props) {
+  const { t } = useTranslation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isAutoScrolling, setIsAutoScrolling] = useState(true);
 
   const exceptionClass = input.type === 'exception'
     ? input.exceptionClass
-    : (input.logEntry.exceptionClass?.split('.').pop() ?? 'Unknown');
+    : (input.logEntry.exceptionClass?.split('.').pop() ?? t('aiDiagnosis.unknownClass'));
 
   const count = input.type === 'exception' ? input.count : 1;
 
@@ -88,14 +90,14 @@ export function ConversationalTab({
       >
         {/* 에러 컨텍스트 요약 카드 */}
         <div className="bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] rounded-lg p-3 mb-4">
-          <p className="text-sm font-semibold text-[var(--color-status-error-fg)] font-mono">{exceptionClass} ({count}건)</p>
+          <p className="text-sm font-semibold text-[var(--color-status-error-fg)] font-mono">{exceptionClass} ({t('aiDiagnosis.occurrenceCount', { count })})</p>
           {sourceLocation && (
             <p className="text-xs text-[var(--color-text-tertiary)] font-mono mt-0.5">{sourceLocation}</p>
           )}
           <p className="text-xs text-[var(--color-text-disabled)] mt-1">
             {input.type === 'exception'
-              ? `최초: ${firstOccurrence} | 최근: ${lastOccurrence}`
-              : `시각: ${firstOccurrence}`
+              ? `${t('aiDiagnosis.firstAt')}: ${firstOccurrence} | ${t('aiDiagnosis.lastAt')}: ${lastOccurrence}`
+              : `${t('aiDiagnosis.atTime')}: ${firstOccurrence}`
             }
           </p>
         </div>
@@ -140,7 +142,7 @@ export function ConversationalTab({
               }}
               className="text-[10px] text-[var(--color-accent-primary)] hover:text-[var(--color-accent-primary)] bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] rounded-full px-3 py-1"
             >
-              새 메시지 ↓
+              {t('aiDiagnosis.newMessageJump')}
             </button>
           </div>
         )}

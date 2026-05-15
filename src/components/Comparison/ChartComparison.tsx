@@ -2,6 +2,7 @@
 // 절대 시간 / 상대 시간 토글 모드 지원
 
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   LineChart,
   Line,
@@ -13,6 +14,7 @@ import {
 } from "recharts";
 import { CHART_COMPARE_COLORS } from "../../constants/chartColors";
 import type { TimelinePoint } from "../../utils/errorAnalyzer";
+import i18n from "../../i18n";
 
 type TimeMode = "absolute" | "relative";
 
@@ -100,13 +102,14 @@ function parseHour(hour: string): number {
   }
 }
 
-// "2026-04-09 09:00" → "04-09 09시"
+// "2026-04-09 09:00" → "04-09 09시" / "04-09 09h"
 function formatAbsoluteLabel(hour: string): string {
   try {
     const [datePart, timePart] = hour.split(" ");
     const parts = datePart.split("-");
     const h = timePart?.slice(0, 2) ?? "00";
-    return `${parts[1]}-${parts[2]} ${h}시`;
+    // i18n.t 직접 호출 (이 함수는 컴포넌트 외부 — useTranslation 사용 불가)
+    return i18n.t('comparison.hourFormat', { month: parts[1], day: parts[2], hour: h });
   } catch {
     return hour;
   }
@@ -134,7 +137,7 @@ function ChartTooltip({ active, payload, label, fileNameA, fileNameB }: any) {
             {p.dataKey === "errorA" ? fileNameA : fileNameB}:
           </span>
           <span className="font-medium text-[var(--color-text-primary)]">
-            {p.value.toLocaleString()}건
+            {i18n.t('comparison.tooltipCount', { count: p.value.toLocaleString() })}
           </span>
         </div>
       ))}
@@ -150,6 +153,7 @@ export function ChartComparison({
   fileNameA,
   fileNameB,
 }: ChartComparisonProps) {
+  const { t } = useTranslation();
   const [timeMode, setTimeMode] = useState<TimeMode>("absolute");
 
   const absoluteData = useMemo(
@@ -168,11 +172,11 @@ export function ChartComparison({
     return (
       <section>
         <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
-          시간대별 ERROR 비교
+          {t('comparison.hourlyError')}
         </h3>
         <div className="border border-dashed border-[var(--color-border-default)] rounded-lg text-center py-10">
           <p className="text-sm text-[var(--color-text-disabled)]">
-            ERROR 로그가 없어 차트를 표시할 수 없습니다
+            {t('comparison.noErrorChart')}
           </p>
         </div>
       </section>
@@ -184,7 +188,7 @@ export function ChartComparison({
       {/* 헤더 + 토글 */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-          시간대별 ERROR 비교
+          {t('comparison.hourlyError')}
         </h3>
         <div className="flex rounded-md border border-[var(--color-border-default)] overflow-hidden">
           <button
@@ -195,7 +199,7 @@ export function ChartComparison({
             }`}
             onClick={() => setTimeMode("absolute")}
           >
-            절대 시간
+            {t('comparison.absoluteTime')}
           </button>
           <button
             className={`px-3 py-1 text-xs border-l border-[var(--color-border-default)] transition-colors ${
@@ -205,7 +209,7 @@ export function ChartComparison({
             }`}
             onClick={() => setTimeMode("relative")}
           >
-            상대 시간
+            {t('comparison.relativeTime')}
           </button>
         </div>
       </div>
@@ -368,7 +372,7 @@ export function ChartComparison({
               {fileNameA}
               {timeMode === "relative" && (
                 <span className="text-[var(--color-text-disabled)] ml-1">
-                  ({formatStartTime(timelineA)} 시작)
+                  {t('comparison.startedAt', { time: formatStartTime(timelineA) })}
                 </span>
               )}
             </span>
@@ -379,7 +383,7 @@ export function ChartComparison({
               {fileNameB}
               {timeMode === "relative" && (
                 <span className="text-[var(--color-text-disabled)] ml-1">
-                  ({formatStartTime(timelineB)} 시작)
+                  {t('comparison.startedAt', { time: formatStartTime(timelineB) })}
                 </span>
               )}
             </span>

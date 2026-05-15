@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Activity,
   BarChart3,
@@ -39,70 +40,73 @@ interface GroupContext {
   hasLiveSession: boolean;
 }
 
+// NavItem 의 label / disabledReason 은 i18n 키 문자열 (렌더 시점에 t() 적용).
+// 모듈 레벨 상수에서 t() 호출 불가능 — 컴포넌트 안에서 문자열을 변환한다.
 interface NavItem {
   view: MainView;
-  label: string;
+  labelKey: string;
   Icon: LucideIcon;
-  // 비활성 사유 (null = 활성)
-  disabledWhen: (ctx: GroupContext) => string | null;
+  /** 비활성 사유 i18n 키 (null = 활성). 'fileModeOnly' | 'loadFileFirst' | 'liveModeOnly' | 'startWatchFirst' 중 하나. */
+  disabledKey: (ctx: GroupContext) => string | null;
 }
 
 const FILE_ITEMS: NavItem[] = [
   {
     view: "stacktrace",
-    label: "스택트레이스",
+    labelKey: "sidebar.stackTrace",
     Icon: FileSearch,
-    disabledWhen: (c) =>
-      c.appMode !== "file" ? "파일 분석 모드에서 사용 가능" : c.hasFileData ? null : "파일을 먼저 로드하세요",
+    disabledKey: (c) =>
+      c.appMode !== "file" ? "sidebar.fileModeOnly" : c.hasFileData ? null : "sidebar.loadFileFirst",
   },
   {
     view: "errorPattern",
-    label: "에러 패턴",
+    labelKey: "sidebar.errorPattern",
     Icon: BarChart3,
-    disabledWhen: (c) =>
-      c.appMode !== "file" ? "파일 분석 모드에서 사용 가능" : c.hasFileData ? null : "파일을 먼저 로드하세요",
+    disabledKey: (c) =>
+      c.appMode !== "file" ? "sidebar.fileModeOnly" : c.hasFileData ? null : "sidebar.loadFileFirst",
   },
 ];
 
 const LIVE_ITEMS: NavItem[] = [
   {
     view: "liveLog",
-    label: "실시간 로그",
+    labelKey: "sidebar.realtimeLog",
     Icon: Activity,
-    disabledWhen: (c) =>
-      c.appMode !== "live" ? "실시간 감시 모드에서 사용 가능" : c.hasLiveSession ? null : "감시를 시작하세요",
+    disabledKey: (c) =>
+      c.appMode !== "live" ? "sidebar.liveModeOnly" : c.hasLiveSession ? null : "sidebar.startWatchFirst",
   },
   {
     view: "stacktrace",
-    label: "스택트레이스",
+    labelKey: "sidebar.stackTrace",
     Icon: FileSearch,
-    disabledWhen: (c) =>
-      c.appMode !== "live" ? "실시간 감시 모드에서 사용 가능" : c.hasLiveSession ? null : "감시를 시작하세요",
+    disabledKey: (c) =>
+      c.appMode !== "live" ? "sidebar.liveModeOnly" : c.hasLiveSession ? null : "sidebar.startWatchFirst",
   },
   {
     view: "errorPattern",
-    label: "에러 패턴",
+    labelKey: "sidebar.errorPattern",
     Icon: BarChart3,
-    disabledWhen: (c) =>
-      c.appMode !== "live" ? "실시간 감시 모드에서 사용 가능" : c.hasLiveSession ? null : "감시를 시작하세요",
+    disabledKey: (c) =>
+      c.appMode !== "live" ? "sidebar.liveModeOnly" : c.hasLiveSession ? null : "sidebar.startWatchFirst",
   },
 ];
 
 // 분석 도구 메뉴 (라이선스/Pro 폐기 후 모든 사용자에게 동일하게 노출)
 interface ToolNavItem {
   tab: ToolTab;
-  label: string;
+  labelKey: string;
   Icon: LucideIcon;
 }
 
 const TOOL_NAV_ITEMS: ToolNavItem[] = [
-  { tab: "history", label: "분석 히스토리", Icon: History },
-  { tab: "compare", label: "로그 비교", Icon: GitCompare },
-  { tab: "export", label: "PDF 내보내기", Icon: FileDown },
-  { tab: "ai", label: "AI 진단", Icon: Sparkles },
+  { tab: "history", labelKey: "sidebar.history", Icon: History },
+  { tab: "compare", labelKey: "sidebar.logComparison", Icon: GitCompare },
+  { tab: "export", labelKey: "sidebar.pdfExport", Icon: FileDown },
+  { tab: "ai", labelKey: "sidebar.aiDiagnosis", Icon: Sparkles },
 ];
 
 export function Sidebar() {
+  const { t } = useTranslation();
   const fileName = useLogStore((s) => s.fileName);
   const fileSize = useLogStore((s) => s.fileSize);
   const analysis = useLogStore((s) => s.analysis);
@@ -155,9 +159,9 @@ export function Sidebar() {
       closeDiagnosis();
     }
 
-    const reason = item.disabledWhen(ctx);
+    const reasonKey = item.disabledKey(ctx);
 
-    if (reason) {
+    if (reasonKey) {
       // 비활성 항목 클릭 → 해당 모드의 파일 선택 화면으로 이동
       if (group !== appMode) {
         // 다른 모드 → 확인창 필요
@@ -179,11 +183,12 @@ export function Sidebar() {
 
   const renderNavItems = (group: AppMode, items: NavItem[]) =>
     items.map((item) => {
-      const reason = item.disabledWhen(ctx);
-      const isDisabled = reason !== null;
+      const reasonKey = item.disabledKey(ctx);
+      const isDisabled = reasonKey !== null;
       const isActive =
         appMode === group && mainView === item.view && activeToolTab === null && !isDiagnosisViewOpen;
-      const { Icon, label, view } = item;
+      const { Icon, labelKey, view } = item;
+      const label = t(labelKey);
 
       const button = (
         <button
@@ -197,6 +202,7 @@ export function Sidebar() {
                 ? "text-[var(--color-text-tertiary)] opacity-50"
                 : "text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]"
           }`}
+          title={label}
         >
           {isActive && (
             <span
@@ -212,7 +218,7 @@ export function Sidebar() {
       return (
         <div key={`${group}-${view}`}>
           {isDisabled ? (
-            <Tooltip content={reason}>{button}</Tooltip>
+            <Tooltip content={t(reasonKey as string)}>{button}</Tooltip>
           ) : (
             button
           )}
@@ -222,13 +228,15 @@ export function Sidebar() {
 
   // 분석 도구 메뉴 렌더 — Pro 뱃지/자물쇠 아이콘 폐기, 모든 사용자에게 동일 노출
   const renderToolNavItems = (items: ToolNavItem[]) =>
-    items.map(({ tab, label, Icon }) => {
+    items.map(({ tab, labelKey, Icon }) => {
       const isActive = activeToolTab === tab || (tab === 'ai' && isDiagnosisViewOpen);
+      const label = t(labelKey);
       return (
         <button
           key={tab}
           type="button"
           onClick={() => handleToolNavClick(tab)}
+          title={label}
           className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] motion-safe:transition-colors ${
             isActive
               ? "bg-[var(--color-button-primary-bg)]/20 text-[var(--color-accent-primary)]"
@@ -254,11 +262,11 @@ export function Sidebar() {
         <div className="flex items-center gap-2">
           <img
             src={logoUrl}
-            alt="LogLens"
+            alt={t('sidebar.appName')}
             className="w-8 h-8 rounded-lg flex-shrink-0"
             draggable={false}
           />
-          <span className="text-sm font-semibold text-[var(--color-text-primary)]">LogLens</span>
+          <span className="text-sm font-semibold text-[var(--color-text-primary)]">{t('sidebar.appName')}</span>
         </div>
       </div>
 
@@ -268,17 +276,17 @@ export function Sidebar() {
           <button
             type="button"
             onClick={closeFile.close}
-            aria-label="파일 닫기"
+            aria-label={t('sidebar.closeFile')}
             className="absolute top-2 right-2 p-1 rounded text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none"
           >
             <X className="w-4 h-4" />
           </button>
-          <p className="text-xs text-[var(--color-text-tertiary)] mb-1">현재 파일</p>
+          <p className="text-xs text-[var(--color-text-tertiary)] mb-1">{t('sidebar.currentFileLabel')}</p>
           <p
             className="text-xs text-[var(--color-text-secondary)] truncate font-medium pr-6"
             title={fileName ?? ""}
           >
-            {fileName ?? "파싱 중..."}
+            {fileName ?? t('sidebar.parsingInProgress')}
           </p>
           {fileSize > 0 && (
             <p className="text-xs text-[var(--color-text-disabled)] mt-0.5">
@@ -294,7 +302,7 @@ export function Sidebar() {
                 />
               </div>
               <p className="text-[10px] text-[var(--color-text-disabled)] mt-1">
-                {Math.round(progress)}% 파싱 중
+                {t('sidebar.parsingProgress', { progress: Math.round(progress) })}
               </p>
             </div>
           )}
@@ -304,16 +312,16 @@ export function Sidebar() {
       {/* 요약 통계 */}
       {analysis && (
         <div className="px-4 py-3 border-b border-[var(--color-border-default)] space-y-1.5">
-          <p className="text-xs text-[var(--color-text-tertiary)]">요약</p>
+          <p className="text-xs text-[var(--color-text-tertiary)]">{t('sidebar.summary')}</p>
           <div className="grid grid-cols-2 gap-1.5">
             <div className="bg-[var(--color-bg-elevated)] rounded px-2 py-1.5">
-              <p className="text-[10px] text-[var(--color-text-tertiary)]">전체</p>
+              <p className="text-[10px] text-[var(--color-text-tertiary)]">{t('sidebar.summaryAll')}</p>
               <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
                 {analysis.totalEntries.toLocaleString()}
               </p>
             </div>
             <div className="bg-[var(--color-status-error-bg)] dark:bg-[var(--color-status-error-bg)] border border-[var(--color-status-error-border)] dark:border-[var(--color-status-error-border)] rounded px-2 py-1.5">
-              <p className="text-[10px] text-[var(--color-status-error-fg)]">ERROR</p>
+              <p className="text-[10px] text-[var(--color-status-error-fg)]">{t('sidebar.summaryError')}</p>
               <p className="text-sm font-semibold text-[var(--color-status-error-fg)] dark:text-[var(--color-status-error-fg)]">
                 {(
                   analysis.levelCounts.ERROR + analysis.levelCounts.FATAL
@@ -321,15 +329,15 @@ export function Sidebar() {
               </p>
             </div>
             <div className="bg-[var(--color-status-warn-bg)] bg-[var(--color-status-warn-bg)] border border-[var(--color-status-warn-border)] dark:border-[var(--color-status-warn-border)] rounded px-2 py-1.5">
-              <p className="text-[10px] text-[var(--color-status-warn-fg)]">WARN</p>
+              <p className="text-[10px] text-[var(--color-status-warn-fg)]">{t('sidebar.summaryWarn')}</p>
               <p className="text-sm font-semibold text-[var(--color-status-warn-fg)] dark:text-[var(--color-status-warn-fg)]">
                 {analysis.levelCounts.WARN.toLocaleString()}
               </p>
             </div>
             <div className="bg-[var(--color-bg-elevated)] rounded px-2 py-1.5">
-              <p className="text-[10px] text-[var(--color-text-tertiary)]">예외</p>
+              <p className="text-[10px] text-[var(--color-text-tertiary)]">{t('sidebar.summaryExceptions')}</p>
               <p className="text-sm font-semibold text-[var(--color-text-tertiary)]">
-                {analysis.topErrors.length}종
+                {t('sidebar.exceptionKindCount', { count: analysis.topErrors.length })}
               </p>
             </div>
           </div>
@@ -343,12 +351,12 @@ export function Sidebar() {
         aria-labelledby={fileLabelId}
       >
         <GroupHeader
-          label="파일 분석"
+          label={t('sidebar.fileAnalysis')}
           collapsed={fileCollapsed}
           accent="file"
           onLabelClick={() => modeSwitch.requestSwitch("file")}
           onToggle={toggleFileGroup}
-          labelAriaLabel="파일 분석 모드로 전환"
+          labelAriaLabel={t('sidebar.switchToFile')}
           labelId={fileLabelId}
           isActive={appMode === "file"}
         />
@@ -364,12 +372,12 @@ export function Sidebar() {
         aria-labelledby={liveLabelId}
       >
         <GroupHeader
-          label="실시간 감시"
+          label={t('sidebar.realtime')}
           collapsed={liveCollapsed}
           accent="live"
           onLabelClick={() => modeSwitch.requestSwitch("live")}
           onToggle={toggleLiveGroup}
-          labelAriaLabel="실시간 감시 모드로 전환"
+          labelAriaLabel={t('sidebar.switchToLive')}
           labelId={liveLabelId}
           isActive={appMode === "live"}
         />
@@ -385,14 +393,14 @@ export function Sidebar() {
             id={toolsLabelId}
             className="text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-tertiary)]"
           >
-            분석 도구
+            {t('sidebar.groupTools')}
           </h3>
           <button
             type="button"
             onClick={toggleToolsGroup}
             aria-expanded={!toolsCollapsed}
             aria-controls={toolsListId}
-            aria-label={toolsCollapsed ? "분석 도구 펼치기" : "분석 도구 접기"}
+            aria-label={toolsCollapsed ? t('sidebar.toolsExpand') : t('sidebar.toolsCollapse')}
             className="p-1 rounded text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none"
           >
             <ChevronDown
@@ -415,17 +423,17 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => useUiStore.getState().openSettingsModal('about')}
-          aria-label="LogLens 정보 보기"
+          aria-label={t('sidebar.viewLogLensInfo')}
           className="flex items-center gap-1.5 text-xs text-[var(--color-text-disabled)] hover:text-[var(--color-text-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none rounded px-1 py-0.5 motion-safe:transition-colors"
         >
           <span aria-hidden="true">●</span>
-          <span>LogLens</span>
+          <span>{t('sidebar.appName')}</span>
         </button>
-        <Tooltip content="설정">
+        <Tooltip content={t('sidebar.openSettings')}>
           <button
             type="button"
             onClick={() => useUiStore.getState().openSettingsModal()}
-            aria-label="설정"
+            aria-label={t('sidebar.openSettings')}
             className="p-2 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none"
           >
             <Settings className="w-4 h-4" />
@@ -438,21 +446,21 @@ export function Sidebar() {
         open={modeSwitch.confirmOpen}
         title={
           modeSwitch.pendingTarget === "live"
-            ? "실시간 감시로 전환할까요?"
-            : "파일 분석으로 전환할까요?"
+            ? t('sidebar.switchToRealtimeQ')
+            : t('sidebar.switchToFileQ')
         }
         description={
           modeSwitch.pendingTarget === "live"
-            ? "현재 분석 중인 파일을 닫고 실시간 감시를 시작합니다."
-            : "실시간 감시가 중지됩니다."
+            ? t('sidebar.switchToLiveDesc')
+            : t('sidebar.switchToFileDesc')
         }
-        confirmLabel="전환 (초기화)"
-        cancelLabel="취소"
+        confirmLabel={t('sidebar.switchConfirm')}
+        cancelLabel={t('common.cancel')}
         destructive
         onConfirm={modeSwitch.confirmSwitch}
         onCancel={modeSwitch.cancelSwitch}
         extraAction={{
-          label: "유지하며 전환",
+          label: t('sidebar.switchKeep'),
           onClick: modeSwitch.keepDataSwitch,
         }}
         isBusy={modeSwitch.isSwitching}
@@ -461,14 +469,14 @@ export function Sidebar() {
       {/* 파일 해제 확인 다이얼로그 */}
       <ConfirmDialog
         open={closeFile.confirmOpen}
-        title="파일을 닫을까요?"
+        title={t('sidebar.closeFileQ')}
         description={
           hasLiveSession
-            ? "실시간 감시가 중지되고 현재 로드된 데이터가 사라집니다."
-            : "파싱이 중단되고 현재 로드된 데이터가 사라집니다."
+            ? t('sidebar.closeFileLiveDesc')
+            : t('sidebar.closeFileFileDesc')
         }
-        confirmLabel="닫기"
-        cancelLabel="취소"
+        confirmLabel={t('common.close')}
+        cancelLabel={t('common.cancel')}
         destructive
         onConfirm={closeFile.confirmClose}
         onCancel={closeFile.cancelClose}

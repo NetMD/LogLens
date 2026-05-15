@@ -1,6 +1,7 @@
 // 인쇄 전용 숨김 div -- @media print 시에만 표시
 // store 직접 참조 없는 순수 렌더링 컴포넌트
 
+import { useTranslation } from 'react-i18next';
 import {
   Bar,
   BarChart,
@@ -23,13 +24,13 @@ interface Props {
   fileSize: number;
 }
 
-// 시간 포맷 (TimelineChart에서 재사용)
+// 시간 포맷 (TimelineChart에서 재사용). 시각 표현은 짧은 숫자만 사용해 언어 독립.
 function formatHour(hour: string): string {
   try {
     const parts = hour.split(' ');
     const dateParts = parts[0].split('-');
     const timePart = parts[1]?.slice(0, 2) ?? '00';
-    return `${dateParts[1]}/${dateParts[2]} ${timePart}시`;
+    return `${dateParts[1]}/${dateParts[2]} ${timePart}:00`;
   } catch {
     return hour;
   }
@@ -142,12 +143,12 @@ function formatSize(bytes: number): string {
   return `${s.endsWith('.0') ? Math.round(mb) : s} MB`;
 }
 
-// 에러 요약 카드 데이터
-const LEVEL_LABELS: Record<string, string> = {
-  ERROR: '에러',
-  WARN: '경고',
-  INFO: '정보',
-  DEBUG: '디버그',
+// 에러 요약 카드 데이터: 라벨 i18n key 매핑 (렌더 시 t() 적용)
+const LEVEL_LABEL_KEYS: Record<string, string> = {
+  ERROR: 'pdf.thError',
+  WARN: 'pdf.thWarn',
+  INFO: 'pdf.thInfo',
+  DEBUG: 'pdf.thDebug',
 };
 
 export function PrintableReport({
@@ -158,6 +159,7 @@ export function PrintableReport({
   fileName,
   fileSize,
 }: Props) {
+  const { t } = useTranslation();
   const today = new Date().toISOString().slice(0, 10);
   const chartData = analysis.timeline.map((d: TimelinePoint) => ({
     ...d,
@@ -171,7 +173,7 @@ export function PrintableReport({
         <div style={{ borderBottom: `2px solid ${PRINT_BORDER.strong}`, paddingBottom: '12px', marginBottom: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span style={{ fontSize: '12px', color: PRINT_TEXT.tertiary, fontWeight: 600 }}>LogLens</span>
-            <span style={{ fontSize: '10px', color: PRINT_TEXT.tertiary }}>생성일: {today}</span>
+            <span style={{ fontSize: '10px', color: PRINT_TEXT.tertiary }}>{t('pdf.generatedAtLabel')} {today}</span>
           </div>
           <h1 style={{ fontSize: '20px', fontWeight: 700, marginTop: '4px', color: PRINT_TEXT.primary }}>
             {title}
@@ -182,26 +184,26 @@ export function PrintableReport({
         {includeSections.info && (
           <div style={{ marginBottom: '24px' }}>
             <h2 style={{ fontSize: '14px', fontWeight: 600, color: PRINT_TEXT.secondary, borderBottom: `1px solid ${PRINT_BORDER.subtle}`, paddingBottom: '4px', marginBottom: '8px' }}>
-              분석 정보
+              {t('pdf.headerAnalysisInfo')}
             </h2>
             <table style={{ fontSize: '12px', borderCollapse: 'collapse', width: '100%' }}>
               <tbody>
                 <tr>
-                  <td style={{ padding: '4px 12px 4px 0', color: PRINT_TEXT.tertiary, width: '100px' }}>파일명</td>
+                  <td style={{ padding: '4px 12px 4px 0', color: PRINT_TEXT.tertiary, width: '100px' }}>{t('pdf.thFileName')}</td>
                   <td style={{ padding: '4px 0', color: PRINT_TEXT.primary }}>{fileName}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '4px 12px 4px 0', color: PRINT_TEXT.tertiary }}>크기</td>
+                  <td style={{ padding: '4px 12px 4px 0', color: PRINT_TEXT.tertiary }}>{t('pdf.thSize')}</td>
                   <td style={{ padding: '4px 0', color: PRINT_TEXT.primary }}>{formatSize(fileSize)}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '4px 12px 4px 0', color: PRINT_TEXT.tertiary }}>로그 엔트리</td>
-                  <td style={{ padding: '4px 0', color: PRINT_TEXT.primary }}>{analysis.totalEntries.toLocaleString()}건</td>
+                  <td style={{ padding: '4px 12px 4px 0', color: PRINT_TEXT.tertiary }}>{t('pdf.thEntries')}</td>
+                  <td style={{ padding: '4px 0', color: PRINT_TEXT.primary }}>{t('pdf.entriesUnit', { count: analysis.totalEntries.toLocaleString() })}</td>
                 </tr>
                 {analysis.parseFailCount > 0 && (
                   <tr>
-                    <td style={{ padding: '4px 12px 4px 0', color: PRINT_TEXT.tertiary }}>파싱 실패</td>
-                    <td style={{ padding: '4px 0', color: PRINT_LEVEL.ERROR }}>{analysis.parseFailCount}건</td>
+                    <td style={{ padding: '4px 12px 4px 0', color: PRINT_TEXT.tertiary }}>{t('pdf.thParseFail')}</td>
+                    <td style={{ padding: '4px 0', color: PRINT_LEVEL.ERROR }}>{t('pdf.failCountUnit', { count: analysis.parseFailCount })}</td>
                   </tr>
                 )}
               </tbody>
@@ -213,20 +215,20 @@ export function PrintableReport({
         {includeSections.summaryCards && (
           <div style={{ marginBottom: '24px' }}>
             <h2 style={{ fontSize: '14px', fontWeight: 600, color: PRINT_TEXT.secondary, borderBottom: `1px solid ${PRINT_BORDER.subtle}`, paddingBottom: '4px', marginBottom: '8px' }}>
-              에러 요약
+              {t('pdf.headerErrorSummary')}
             </h2>
             <table style={{ fontSize: '12px', borderCollapse: 'collapse', width: '98%', marginLeft: '1%', tableLayout: 'fixed', border: `1px solid ${PRINT_BORDER.default}` }}>
               <thead>
                 <tr>
                   <th style={{ border: `1px solid ${PRINT_BORDER.default}`, textAlign: 'center', background: PRINT_SURFACE.muted, color: PRINT_TEXT.secondary }}>
-                    전체
+                    {t('pdf.thAll')}
                   </th>
                   {['ERROR', 'WARN', 'INFO', 'DEBUG'].map((level) => (
                     <th
                       key={level}
                       style={{ border: `1px solid ${PRINT_BORDER.default}`, textAlign: 'center', background: PRINT_SURFACE.muted, color: PRINT_TEXT.secondary }}
                     >
-                      {LEVEL_LABELS[level] ?? level}
+                      {LEVEL_LABEL_KEYS[level] ? t(LEVEL_LABEL_KEYS[level]) : level}
                     </th>
                   ))}
                 </tr>
@@ -260,7 +262,7 @@ export function PrintableReport({
         {includeSections.timeline && chartData.length > 0 && (
           <div style={{ marginBottom: '24px' }}>
             <h2 style={{ fontSize: '14px', fontWeight: 600, color: PRINT_TEXT.secondary, borderBottom: `1px solid ${PRINT_BORDER.subtle}`, paddingBottom: '4px', marginBottom: '8px' }}>
-              시간대별 추이
+              {t('pdf.headerHourlyChart')}
             </h2>
             <div className="chart-container">
               <BarChart width={620} height={220} data={chartData} barSize={12} barGap={2}>
@@ -312,7 +314,7 @@ export function PrintableReport({
         {includeSections.topErrors && analysis.topErrors.length > 0 && (
           <div style={{ marginBottom: '24px' }}>
             <h2 style={{ fontSize: '14px', fontWeight: 600, color: PRINT_TEXT.secondary, borderBottom: `1px solid ${PRINT_BORDER.subtle}`, paddingBottom: '4px', marginBottom: '8px' }}>
-              Top 예외 목록
+              {t('pdf.headerTopExceptions')}
             </h2>
             <table
               className="top-errors-table"
@@ -332,11 +334,11 @@ export function PrintableReport({
               </colgroup>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${PRINT_BORDER.subtle}` }}>
-                  <th style={{ padding: '6px 8px', textAlign: 'left', color: PRINT_TEXT.tertiary }}>#</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'left', color: PRINT_TEXT.tertiary }}>예외 클래스</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'right', color: PRINT_TEXT.tertiary, whiteSpace: 'nowrap' }}>건수</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'left', color: PRINT_TEXT.tertiary, whiteSpace: 'nowrap' }}>최초</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'left', color: PRINT_TEXT.tertiary, whiteSpace: 'nowrap' }}>최종</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', color: PRINT_TEXT.tertiary }}>{t('pdf.thNum')}</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', color: PRINT_TEXT.tertiary }}>{t('pdf.thException')}</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right', color: PRINT_TEXT.tertiary, whiteSpace: 'nowrap' }}>{t('pdf.thCount')}</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', color: PRINT_TEXT.tertiary, whiteSpace: 'nowrap' }}>{t('pdf.thFirst')}</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', color: PRINT_TEXT.tertiary, whiteSpace: 'nowrap' }}>{t('pdf.thLast')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -378,7 +380,7 @@ export function PrintableReport({
         {includeSections.stacktrace && entries.length > 0 && (
           <div style={{ marginBottom: '24px' }}>
             <h2 style={{ fontSize: '14px', fontWeight: 600, color: PRINT_TEXT.secondary, borderBottom: `1px solid ${PRINT_BORDER.subtle}`, paddingBottom: '4px', marginBottom: '8px' }}>
-              주요 스택트레이스
+              {t('pdf.headerStacktraces')}
             </h2>
             {/* 최대 50건 상한 */}
             {entries.slice(0, 50).map((entry) => {
@@ -465,7 +467,7 @@ export function PrintableReport({
             })}
             {entries.length > 50 && (
               <div style={{ fontSize: '11px', color: PRINT_TEXT.tertiary, textAlign: 'center', marginTop: '8px' }}>
-                메모리 보호를 위해 상위 50건만 포함됩니다
+                {t('pdf.stackLimitNote')}
               </div>
             )}
           </div>

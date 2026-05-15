@@ -5,6 +5,7 @@
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import i18n from "../i18n";
 import { useLogStore } from "../store/logStore";
 import { useUiStore } from "../store/uiStore";
 import { useLogWatchActions } from "./useLogWatch";
@@ -28,7 +29,7 @@ export function useCloseFile() {
       if (import.meta.env.DEV) {
         console.warn("[useCloseFile] 파일 해제 실패", e);
       }
-      toast.error("파일을 해제하지 못했습니다. 다시 시도해 주세요.");
+      toast.error(i18n.t("sidebar.fileReleaseFailed"));
     } finally {
       setIsClosing(false);
       setConfirmOpen(false);

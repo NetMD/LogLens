@@ -1,6 +1,7 @@
 // 요약 카드 비교 컴포넌트
 // 레벨별 A/B 카운트 + 증감 뱃지 + 에러 비율 비교 행
 
+import { useTranslation } from "react-i18next";
 import type { LevelDelta, DeltaType } from "../../utils/comparisonAnalyzer";
 import { DeltaBadge } from "../shared/DeltaBadge";
 
@@ -42,6 +43,7 @@ export function SummaryComparison({
   errorRateA,
   errorRateB,
 }: SummaryComparisonProps) {
+  const { t } = useTranslation();
   // 에러 비율 증감
   const errorRateDelta = Math.round((errorRateB - errorRateA) * 100) / 100;
   const errorRateDeltaType: DeltaType =
@@ -53,7 +55,7 @@ export function SummaryComparison({
         id="comparison-summary"
         className="text-sm font-semibold text-[var(--color-text-primary)] mb-3"
       >
-        요약 비교
+        {t('comparison.summaryComparison')}
       </h3>
       <div
         className="grid grid-cols-2 gap-3 lg:grid-cols-4"
@@ -61,12 +63,14 @@ export function SummaryComparison({
       >
         {levelDeltas.map((ld) => {
           const style = CARD_STYLES[ld.level] ?? CARD_STYLES["전체"];
+          // ld.level 이 "전체" 일 때만 i18n 치환 (다른 ERROR/WARN/INFO 는 영문 그대로 표시)
+          const displayLevel = ld.level === "전체" ? t('errorPattern.totalLogs') : ld.level;
           return (
             <div
               key={ld.level}
               className={`${style.bg} border ${style.border} rounded-lg px-4 py-3`}
             >
-              <p className={`text-xs ${style.labelColor}`}>{ld.level}</p>
+              <p className={`text-xs ${style.labelColor}`}>{displayLevel}</p>
               {/* A 값 */}
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="text-[var(--color-accent-primary)]/60 text-xs">A:</span>
@@ -94,7 +98,7 @@ export function SummaryComparison({
       <div className="mt-3 bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] rounded-lg px-4 py-3">
         <div className="flex items-center justify-between">
           <span className="text-xs text-[var(--color-text-tertiary)]">
-            에러 비율 (ERROR/전체)
+            {t('comparison.errorRate')}
           </span>
           <div className="flex items-center gap-4">
             <span className="text-sm">

@@ -7,6 +7,7 @@
 
 import { FolderOpen, Loader2, RotateCw, StopCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLogWatchActions } from "../../hooks/useLogWatch";
 import { useLogStore } from "../../store/logStore";
 import { StatusDot } from "../shared/StatusDot";
@@ -15,6 +16,7 @@ import { StatusDot } from "../shared/StatusDot";
 const SPINNER_DELAY_MS = 50;
 
 export function WatchToggleButton() {
+  const { t } = useTranslation();
   const watchMode = useLogStore((s) => s.watchMode);
   // 액션 전용 훅 사용 (이벤트 구독은 MainLayout 의 controller 에서 1회만)
   const { start, stop } = useLogWatchActions();
@@ -72,7 +74,7 @@ export function WatchToggleButton() {
       content = (
         <>
           <FolderOpen className="w-4 h-4" />
-          <span>파일 열기</span>
+          <span>{t('realtime.openFile')}</span>
         </>
       );
       break;
@@ -82,12 +84,12 @@ export function WatchToggleButton() {
       content = showStartingSpinner ? (
         <>
           <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
-          <span>시작 중...</span>
+          <span>{t('realtime.startingShort')}</span>
         </>
       ) : (
         <>
           <FolderOpen className="w-4 h-4" />
-          <span>파일 열기</span>
+          <span>{t('realtime.openFile')}</span>
         </>
       );
       break;
@@ -97,7 +99,7 @@ export function WatchToggleButton() {
       content = (
         <>
           <StatusDot variant="emerald" pulse />
-          <span>실시간</span>
+          <span>{t('realtime.liveShort')}</span>
           <StopCircle className="w-4 h-4 opacity-70" />
         </>
       );
@@ -108,7 +110,7 @@ export function WatchToggleButton() {
       content = (
         <>
           <RotateCw className="w-4 h-4" />
-          <span>재시도</span>
+          <span>{t('realtime.retry')}</span>
         </>
       );
       break;
@@ -120,10 +122,10 @@ export function WatchToggleButton() {
       aria-pressed={isPressed}
       aria-label={
         watchMode === "watching"
-          ? "실시간 감시 중지"
+          ? t('realtime.toggleStopAria')
           : watchMode === "error"
-            ? "감시 재시도"
-            : "로그 파일 열어 실시간 감시 시작"
+            ? t('realtime.toggleRetryAria')
+            : t('realtime.toggleStartAria')
       }
       disabled={disabled}
       onClick={handleClick}

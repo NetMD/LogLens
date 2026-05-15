@@ -1,4 +1,5 @@
 import { Sparkles, FileSearch, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useLogStore } from '../../store/logStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useUiStore } from '../../store/uiStore';
@@ -14,6 +15,7 @@ import type { DiagnosisHistory } from '../../types/diagnosis';
  * - 로그 로드: 에러 목록 + [AI 진단 시작] 버튼
  */
 export function DiagnosisLanding() {
+  const { t } = useTranslation();
   const entries = useLogStore((s) => s.entries);
   const analysis = useLogStore((s) => s.analysis);
   const aiProvider = useSettingsStore((s) => s.aiProvider);
@@ -90,15 +92,13 @@ export function DiagnosisLanding() {
             <Sparkles className="w-8 h-8 text-[var(--color-accent-primary)]" />
           </div>
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-3">
-            AI 진단
+            {t('aiDiagnosis.title')}
           </h2>
           <p className="text-sm text-[var(--color-text-tertiary)] leading-relaxed">
-            로그 파일을 먼저 분석해주세요.
+            {t('aiDiagnosis.noFile')}
           </p>
           <p className="text-sm text-[var(--color-text-tertiary)] leading-relaxed mt-1">
-            파일 분석 후 에러를 선택하여
-            <br />
-            AI 진단을 시작할 수 있습니다.
+            {t('aiDiagnosis.noFileDesc')}
           </p>
           <button
             onClick={() => {
@@ -108,7 +108,7 @@ export function DiagnosisLanding() {
             className="mt-6 inline-flex items-center gap-2 px-4 py-2 text-sm bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-[var(--color-border-default)] rounded-lg hover:bg-[var(--color-bg-hover)] transition-colors"
           >
             <FileSearch className="w-4 h-4" />
-            파일 분석으로 이동
+            {t('aiDiagnosis.goToAnalysis')}
           </button>
         </div>
       </div>
@@ -124,12 +124,12 @@ export function DiagnosisLanding() {
             <Sparkles className="w-8 h-8 text-[var(--color-status-success-fg)]" />
           </div>
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-3">
-            에러가 없습니다
+            {t('aiDiagnosis.noErrors')}
           </h2>
           <p className="text-sm text-[var(--color-text-tertiary)] leading-relaxed">
-            현재 로그 파일에서 예외가 감지되지 않았습니다.
+            {t('aiDiagnosis.noErrorsDesc')}
             <br />
-            에러가 포함된 로그를 분석해주세요.
+            {t('aiDiagnosis.noErrorsDesc2')}
           </p>
         </div>
       </div>
@@ -149,22 +149,22 @@ export function DiagnosisLanding() {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-              AI 진단
+              {t('aiDiagnosis.title')}
             </h2>
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              분석할 에러를 선택하세요
+              {t('aiDiagnosis.selectError')}
             </p>
           </div>
         </div>
         {!aiProvider && (
           <div className="mt-3 bg-[var(--color-status-warn-bg)] border border-[var(--color-status-warn-border)] rounded-lg px-3 py-2">
             <p className="text-xs text-[var(--color-status-warn-fg)]">
-              AI 프로바이더가 설정되지 않았습니다.{' '}
+              {t('aiDiagnosis.noProviderBanner')}{' '}
               <button
                 onClick={() => useUiStore.getState().openSettingsModal()}
                 className="underline hover:text-[var(--color-status-warn-fg)]"
               >
-                설정에서 변경
+                {t('aiDiagnosis.openSettings')}
               </button>
             </p>
           </div>
@@ -193,12 +193,12 @@ export function DiagnosisLanding() {
                       {shortName}
                     </span>
                     {hasHistory && (
-                      <span title="이전 진단 기록 있음" className="flex-shrink-0">
+                      <span title={t('aiDiagnosis.previousDiagnosis')} className="flex-shrink-0">
                         <Clock className="w-3.5 h-3.5 text-[var(--color-accent-primary)]" />
                       </span>
                     )}
                     <span className="ml-auto flex-shrink-0 text-xs font-semibold text-[var(--color-text-secondary)] bg-[var(--color-status-error-bg)] px-2 py-0.5 rounded-full">
-                      {err.count}건
+                      {t('aiDiagnosis.occurrenceCount', { count: err.count })}
                     </span>
                   </div>
 
@@ -210,7 +210,7 @@ export function DiagnosisLanding() {
                   {/* 발생 시간 + 바 */}
                   <div className="flex items-center gap-3 mt-2 ml-7">
                     <span className="text-[10px] text-[var(--color-text-disabled)]">
-                      최초 {formatTime(err.firstOccurrence)} · 최종 {formatTime(err.lastOccurrence)}
+                      {t('aiDiagnosis.firstAndLast', { first: formatTime(err.firstOccurrence), last: formatTime(err.lastOccurrence) })}
                     </span>
                   </div>
 
@@ -230,7 +230,7 @@ export function DiagnosisLanding() {
                   className="flex-shrink-0 mt-1 flex items-center gap-1.5 bg-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)] text-white text-xs font-medium px-3 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  AI 진단
+                  {t('stackTrace.aiDiagnose')}
                 </button>
               </div>
             </div>

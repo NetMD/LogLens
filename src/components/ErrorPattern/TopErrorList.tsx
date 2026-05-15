@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { AnalysisResult } from "../../utils/errorAnalyzer";
 import { useScrollToError } from "../../hooks/useScrollToError";
 import { useLogStore } from "../../store/logStore";
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function TopErrorList({ analysis }: Props) {
+  const { t } = useTranslation();
   const { scrollToEntry } = useScrollToError();
   const { topErrors } = analysis;
   const entries = useLogStore((s) => s.entries);
@@ -23,7 +25,7 @@ export function TopErrorList({ analysis }: Props) {
   if (topErrors.length === 0) {
     return (
       <div className="text-sm text-[var(--color-text-disabled)] py-6 text-center">
-        스택트레이스가 포함된 에러가 없습니다
+        {t('errorPattern.noStackTraces')}
       </div>
     );
   }
@@ -33,9 +35,9 @@ export function TopErrorList({ analysis }: Props) {
   // AI 진단 버튼 disabled 여부
   const isAiDisabled = !aiProvider || isDiagnosisViewOpen;
   const tooltipContent = !aiProvider
-    ? 'AI 프로바이더를 먼저 설정해주세요'
+    ? t('stackTrace.providerRequired')
     : isDiagnosisViewOpen
-      ? '분석이 진행 중입니다'
+      ? t('stackTrace.analyzingInProgress')
       : null;
 
   // AI 진단 핸들러: ExceptionDiagnosisInput 구성
@@ -94,7 +96,7 @@ export function TopErrorList({ analysis }: Props) {
           key={err.exceptionClass}
           role="button"
           tabIndex={0}
-          aria-label={`${err.exceptionClass.split(".").pop()} 스택트레이스로 이동`}
+          aria-label={t('errorPattern.navigateToStackTrace', { exception: err.exceptionClass.split('.').pop() ?? err.exceptionClass })}
           className="group flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-hover)] cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)]/60"
           onClick={() => scrollToEntry(err.sampleEntryId)}
           onKeyDown={(e) => {
@@ -103,7 +105,7 @@ export function TopErrorList({ analysis }: Props) {
               scrollToEntry(err.sampleEntryId);
             }
           }}
-          title="클릭하면 해당 스택트레이스로 이동합니다"
+          title={t('errorPattern.clickToNavigate')}
         >
           {/* 순위 */}
           <span className="flex-shrink-0 text-xs font-mono text-[var(--color-text-disabled)] w-5 text-right">
@@ -118,7 +120,7 @@ export function TopErrorList({ analysis }: Props) {
               </span>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-xs text-[var(--color-text-tertiary)] font-medium">
-                  {err.count.toLocaleString()}건
+                  {t('errorPattern.countItems', { count: err.count.toLocaleString() })}
                 </span>
                 {/* AI 진단 버튼 */}
                 <Tooltip content={tooltipContent} disabled={!tooltipContent}>
@@ -126,10 +128,10 @@ export function TopErrorList({ analysis }: Props) {
                     onClick={(e) => handleDiagnose(err, e)}
                     disabled={isAiDisabled}
                     className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center gap-0.5 bg-[var(--color-accent-primary)] text-white font-medium border border-[var(--color-accent-primary)] rounded px-1.5 py-0.5 text-[10px] hover:bg-[var(--color-accent-primary)] disabled:opacity-30 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none"
-                    aria-label={`${err.exceptionClass.split('.').pop()} AI 진단`}
+                    aria-label={t('stackTrace.aiDiagnoseLabel', { exception: err.exceptionClass.split('.').pop() ?? err.exceptionClass })}
                   >
                     <Sparkles className="w-3 h-3" />
-                    AI 진단
+                    {t('stackTrace.aiDiagnose')}
                   </button>
                 </Tooltip>
               </div>

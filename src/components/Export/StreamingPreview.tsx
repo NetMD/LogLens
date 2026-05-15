@@ -3,6 +3,7 @@
 // aria-live="polite"로 스크린리더 알림
 
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useExportStore } from '../../store/exportStore';
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function StreamingPreview({ visible }: Props) {
+  const { t } = useTranslation();
   const buffer = useExportStore((s) => s.streamingBuffer);
   const preRef = useRef<HTMLPreElement>(null);
 
@@ -27,7 +29,7 @@ export function StreamingPreview({ visible }: Props) {
   return (
     <div className="mt-4 text-left">
       <div className="text-xs text-[var(--color-text-tertiary)] mb-1.5">
-        실시간 미리보기
+        {t('pdf.streamingPreview')}
       </div>
       <pre
         ref={preRef}

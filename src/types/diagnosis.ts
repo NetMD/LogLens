@@ -94,22 +94,30 @@ export const TOKEN_PRICE_PER_1K_INPUT: Record<AiProvider, number> = {
   local:   0,
 };
 
-// === 진행률 메시지 상수 ===
+// === 진행률 메시지 i18n key (UnidirectionalTab 등 호출처에서 직접 t() 적용) ===
 
-export const DIAGNOSIS_PROGRESS_MESSAGES: Record<string, string> = {
-  preparing: '에러 데이터 준비 중...',
-  analyzing: 'AI가 스택트레이스를 분석하고 있습니다...',
-  solving: '해결 방법을 찾고 있습니다...',
+export const DIAGNOSIS_PROGRESS_MESSAGE_KEYS: Record<string, string> = {
+  preparing: 'aiDiagnosis.phasePreparingMessage',
+  analyzing: 'aiDiagnosis.phaseAnalyzingMessage',
+  solving: 'aiDiagnosis.phaseSolvingMessage',
 };
 
-// === 추천 질문 상수 ===
+// 호환 별칭 — 기존 import 경로가 있다면 사용 시점에 i18n.t() 매핑할 것
+// (deprecated — 신규 호출처는 DIAGNOSIS_PROGRESS_MESSAGE_KEYS + i18n.t() 사용)
+export const DIAGNOSIS_PROGRESS_MESSAGES: Record<string, string> = DIAGNOSIS_PROGRESS_MESSAGE_KEYS;
 
-export const SUGGESTED_QUESTIONS = [
-  '이 에러의 원인이 뭔가요?',
-  '고치는 코드 예시 보여줘',
-  '이 에러가 재발하지 않으려면?',
-  '관련된 다른 문제가 있을까요?',
+// === 추천 질문 — i18n key 배열로 변경 ===
+// SuggestedQuestions 컴포넌트는 t() 로 변환해서 화면에 표시한다.
+
+export const SUGGESTED_QUESTION_KEYS = [
+  'aiDiagnosis.suggestedQuestion1',
+  'aiDiagnosis.suggestedQuestion2',
+  'aiDiagnosis.suggestedQuestion3',
+  'aiDiagnosis.suggestedQuestion4',
 ] as const;
+
+// 호환 — i18n key 배열을 그대로 export (SuggestedQuestions 컴포넌트에서 t() 매핑)
+export const SUGGESTED_QUESTIONS = SUGGESTED_QUESTION_KEYS;
 
 // === phase 목표 진행률 ===
 

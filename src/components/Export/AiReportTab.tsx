@@ -2,6 +2,7 @@
 // 8차: 출력 언어, 프로젝트 루트, 파일 크기 경고, 스트리밍 프리뷰, PrintableAiReport 통합
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import {
   Sparkles,
@@ -50,22 +51,22 @@ import {
   isLocalProvider,
 } from '../../types/settings';
 
-// 프리셋 정의
-const PRESETS: { type: PresetType; label: string; description: string }[] = [
+// 프리셋 정의 (라벨/설명은 i18n key 로 보관 — 렌더 시 t() 로 해석)
+const PRESETS: { type: PresetType; labelKey: string; descriptionKey: string }[] = [
   {
     type: 'incident',
-    label: '장애 보고서',
-    description: '시간대, 영향범위, 근본원인, 조치사항',
+    labelKey: 'pdf.presetIncident',
+    descriptionKey: 'pdf.presetIncidentDesc',
   },
   {
     type: 'daily',
-    label: '일일 점검 보고서',
-    description: '로그 분포, 안정성 평가, 조치 항목',
+    labelKey: 'pdf.presetDaily',
+    descriptionKey: 'pdf.presetDailyDesc',
   },
   {
     type: 'devSummary',
-    label: '개발팀 공유 요약',
-    description: '핵심 이슈, 코드 분석, 수정 우선순위',
+    labelKey: 'pdf.presetDevSummary',
+    descriptionKey: 'pdf.presetDevSummaryDesc',
   },
 ];
 
@@ -121,6 +122,7 @@ function buildAiReportFileName(params: {
 }
 
 export function AiReportTab() {
+  const { t } = useTranslation();
   const aiProvider = useSettingsStore((s) => s.aiProvider);
   const aiApiKeys = useSettingsStore((s) => s.aiApiKeys);
   const aiModel = useSettingsStore((s) => s.aiModel);
@@ -276,7 +278,7 @@ export function AiReportTab() {
   /** ListModels API 호출 — 현재 프로바이더의 사용 가능한 모델을 가져와 dynamicModels 에 저장 */
   async function handleRefreshModels(): Promise<void> {
     if (aiProvider === null || activeApiKey.trim() === '') {
-      setModelsError('API 키를 먼저 설정에서 등록해 주세요.');
+      setModelsError(t('pdf.apiKeyRequired'));
       return;
     }
     setRefreshingModels(true);
@@ -285,7 +287,7 @@ export function AiReportTab() {
       const provider = getAiProvider(aiProvider);
       const models = await provider.listModels(activeApiKey.trim());
       if (models.length === 0) {
-        setModelsError('사용 가능한 모델이 없습니다.');
+        setModelsError(t('pdf.modelsErrorEmpty'));
         return;
       }
       setDynamicModels((prev) => ({ ...prev, [aiProvider]: models }));
@@ -299,16 +301,16 @@ export function AiReportTab() {
       if (e instanceof AiApiError) {
         const base =
           e.type === 'INVALID_API_KEY'
-            ? 'API 키가 유효하지 않습니다'
+            ? t('pdf.modelInvalidKey')
             : e.type === 'RATE_LIMIT'
-              ? '요청 한도를 초과했습니다'
+              ? t('pdf.modelRateLimit')
               : e.type === 'NETWORK_ERROR'
-                ? '네트워크 오류'
-                : '모델 목록을 가져오지 못했습니다';
+                ? t('pdf.modelNetwork')
+                : t('pdf.modelFetchFail');
         const detail = e.message && !e.message.startsWith('Invalid') ? ` — ${e.message}` : '';
         setModelsError(`${base}${detail}`);
       } else {
-        setModelsError('알 수 없는 오류가 발생했습니다');
+        setModelsError(t('pdf.unknownError'));
       }
     } finally {
       setRefreshingModels(false);
@@ -562,18 +564,18 @@ export function AiReportTab() {
     }
   }
 
-  /** "2분 전" 형태의 상대 시간 표시 */
+  /** "2분 전" 형태의 상대 시간 표시 (i18n) */
   function formatRelativeTime(iso: string): string {
     const ms = Date.now() - new Date(iso).getTime();
-    if (ms < 0) return '방금';
+    if (ms < 0) return t('pdf.justNow');
     const sec = Math.floor(ms / 1000);
-    if (sec < 60) return '방금';
+    if (sec < 60) return t('pdf.justNow');
     const min = Math.floor(sec / 60);
-    if (min < 60) return `${min}분 전`;
+    if (min < 60) return t('pdf.minutesAgo', { count: min });
     const hr = Math.floor(min / 60);
-    if (hr < 24) return `${hr}시간 전`;
+    if (hr < 24) return t('pdf.hoursAgo', { count: hr });
     const day = Math.floor(hr / 24);
-    if (day < 7) return `${day}일 전`;
+    if (day < 7) return t('pdf.daysAgo', { count: day });
     const d = new Date(iso);
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -672,24 +674,18 @@ export function AiReportTab() {
     return (
       <div className="bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] rounded-xl p-6 text-center">
         <Sparkles className="w-8 h-8 text-[var(--color-text-disabled)] mx-auto mb-3" />
-        <p className="text-sm font-medium text-[var(--color-text-secondary)]">
-          AI 리포트를 사용하려면
-          <br />
-          API 키를 먼저 등록해 주세요
+        <p className="text-sm font-medium text-[var(--color-text-secondary)] whitespace-pre-line">
+          {t('pdf.registerKeyTitle')}
         </p>
-        <p className="text-xs text-[var(--color-text-tertiary)] mt-2">
-          설정 &gt; AI 설정에서 프로바이더와
-          <br />
-          API 키(또는 로컬 LLM)를 등록하면
-          <br />
-          AI 기반 보고서를 자동 생성할 수 있습니다.
+        <p className="text-xs text-[var(--color-text-tertiary)] mt-2 whitespace-pre-line">
+          {t('pdf.registerKeyDesc')}
         </p>
         <button
           onClick={() => openSettingsModal('ai')}
           className="mt-4 px-4 py-2 text-sm rounded-lg border border-[var(--color-border-default)] hover:bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] transition-colors inline-flex items-center gap-2"
         >
           <Settings className="w-4 h-4" />
-          AI 설정
+          {t('pdf.aiSettings')}
         </button>
       </div>
     );
@@ -752,7 +748,7 @@ export function AiReportTab() {
               : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'
           }`}
         >
-          단일 생성
+          {t('pdf.singleMode')}
         </button>
         <button
           type="button"
@@ -763,7 +759,7 @@ export function AiReportTab() {
               : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]'
           }`}
         >
-          비교 생성
+          {t('pdf.comparisonMode')}
         </button>
       </div>
 
@@ -779,7 +775,7 @@ export function AiReportTab() {
       {/* 프리셋 선택 (양식 업로드 제거 — 프리셋만 표시) */}
       <div>
         <label className="block text-xs text-[var(--color-text-tertiary)] mb-1.5">
-          리포트 유형
+          {t('pdf.reportType')}
         </label>
         <div className="space-y-2">
           {PRESETS.map((preset) => (
@@ -800,10 +796,10 @@ export function AiReportTab() {
                   onChange={() => setPresetType(preset.type)}
                   className="accent-blue-500"
                 />
-                <span className="text-sm text-[var(--color-text-primary)]">{preset.label}</span>
+                <span className="text-sm text-[var(--color-text-primary)]">{t(preset.labelKey)}</span>
               </div>
               <p className="text-xs text-[var(--color-text-disabled)] mt-0.5 pl-6">
-                {preset.description}
+                {t(preset.descriptionKey)}
               </p>
             </label>
           ))}
@@ -813,7 +809,7 @@ export function AiReportTab() {
       {/* 출력 언어 라디오 (8차 신규) */}
       <div>
         <label className="block text-xs text-[var(--color-text-tertiary)] mb-1.5">
-          출력 언어
+          {t('pdf.outputLanguageLabel')}
         </label>
         <div className="flex items-center gap-4">
           <label className="flex items-center gap-2 cursor-pointer">
@@ -825,7 +821,7 @@ export function AiReportTab() {
               onChange={() => setOutputLanguage('ko')}
               className="accent-blue-500"
             />
-            <span className="text-sm text-[var(--color-text-secondary)]">한국어</span>
+            <span className="text-sm text-[var(--color-text-secondary)]">{t('pdf.ko')}</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -844,7 +840,7 @@ export function AiReportTab() {
       {/* 출력 형식 — PDF 고정 */}
       <div>
         <label className="block text-xs text-[var(--color-text-tertiary)] mb-1.5">
-          출력 형식
+          {t('pdf.outputFormatLabel')}
         </label>
         <span className="text-sm text-[var(--color-text-secondary)]">PDF</span>
       </div>
@@ -854,7 +850,7 @@ export function AiReportTab() {
           복원 모드에서는 sourceCode를 제외하므로 사용자 기대와 일치시킴 */}
       <div>
         <label className="block text-xs text-[var(--color-text-tertiary)] mb-1.5">
-          프로젝트 루트 (선택)
+          {t('pdf.projectRootLabel')}
         </label>
         <ProjectRootPicker
           projectRoot={projectRoot}
@@ -863,11 +859,11 @@ export function AiReportTab() {
         />
         {isFromHistory ? (
           <p className="text-xs text-[var(--color-status-warn-fg)] mt-1.5">
-            히스토리 복원 모드에서는 소스 코드 분석이 지원되지 않습니다.
+            {t('pdf.projectRootDisabled')}
           </p>
         ) : (
           <p className="text-xs text-[var(--color-text-disabled)] mt-1.5">
-            폴더를 선택하면 스택트레이스 관련 소스 코드를 AI에 함께 전달하여 분석 품질을 높입니다.
+            {t('pdf.projectRootHelp')}
           </p>
         )}
 
@@ -875,20 +871,16 @@ export function AiReportTab() {
         {projectRoot && aiProvider !== null && !isLocalProvider(aiProvider) && (
           <div className="mt-2 flex items-start gap-2 text-xs rounded-lg px-3 py-2 bg-[var(--color-status-warn-bg)]">
             <span className="flex-shrink-0 mt-0.5">&#x26A0;&#xFE0F;</span>
-            <span className="text-[var(--color-status-warn-fg)] leading-relaxed">
-              선택한 폴더의 Java/Kotlin 소스 파일이 AI 서버로 전송됩니다.
-              <br />
-              민감 정보가 포함되지 않았는지 확인해 주세요.
+            <span className="text-[var(--color-status-warn-fg)] leading-relaxed whitespace-pre-line">
+              {t('pdf.projectRootWarning')}
             </span>
           </div>
         )}
         {projectRoot && isLocalProvider(aiProvider) && (
           <div className="mt-2 flex items-start gap-2 text-xs rounded-lg px-3 py-2 bg-[var(--color-status-success-bg)]">
             <span className="flex-shrink-0 mt-0.5">&#x2705;</span>
-            <span className="text-[var(--color-status-success-fg)] leading-relaxed">
-              로컬 LLM을 사용 중입니다.
-              <br />
-              소스코드가 외부로 전송되지 않으며 모든 분석이 이 기기에서만 처리됩니다.
+            <span className="text-[var(--color-status-success-fg)] leading-relaxed whitespace-pre-line">
+              {t('pdf.projectRootSafe')}
             </span>
           </div>
         )}
@@ -899,7 +891,7 @@ export function AiReportTab() {
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <label className="block text-xs text-[var(--color-text-tertiary)]">
-            AI 프로바이더
+            {t('pdf.aiProviderLabel')}
           </label>
           <button
             type="button"
@@ -907,7 +899,7 @@ export function AiReportTab() {
             className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] inline-flex items-center gap-1 transition-colors"
           >
             <Settings className="w-3 h-3" />
-            설정에서 관리
+            {t('pdf.manageInSettings')}
           </button>
         </div>
         <div className="grid grid-cols-4 gap-2">
@@ -928,14 +920,14 @@ export function AiReportTab() {
                 aria-pressed={isSelected}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span>{isLocal ? '🖥 로컬' : AI_PROVIDER_LABELS[p]}</span>
+                  <span>{isLocal ? t('pdf.localLabel') : AI_PROVIDER_LABELS[p]}</span>
                   {hasKey ? (
                     <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--color-status-success-bg)] text-[var(--color-status-success-fg)] font-semibold">
-                      {isLocal ? 'ON' : 'KEY'}
+                      {isLocal ? t('pdf.labelOn') : t('pdf.labelKey')}
                     </span>
                   ) : (
                     <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--color-bg-surface)] text-[var(--color-text-disabled)] font-semibold">
-                      N/A
+                      {t('pdf.labelNa')}
                     </span>
                   )}
                 </div>
@@ -948,11 +940,11 @@ export function AiReportTab() {
         {isLocalProvider(aiProvider) && isAiConfigured && (
           <div className="mt-2 bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] rounded-lg px-3 py-2 text-xs text-[var(--color-text-secondary)]">
             <div className="flex items-center gap-2">
-              <span className="text-[var(--color-text-tertiary)]">모델명:</span>
+              <span className="text-[var(--color-text-tertiary)]">{t('pdf.modelLabel')}:</span>
               <span className="font-mono">{localLlmModel}</span>
             </div>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[var(--color-text-tertiary)]">엔드포인트:</span>
+              <span className="text-[var(--color-text-tertiary)]">{t('pdf.endpointLabel')}:</span>
               <span className="font-mono text-[11px]">{localLlmEndpoint}</span>
             </div>
           </div>
@@ -964,8 +956,8 @@ export function AiReportTab() {
             <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
             <span>
               {isLocalProvider(aiProvider)
-                ? '로컬 LLM 모델명이 설정되지 않았습니다. 설정에서 모델명을 입력하세요.'
-                : `${AI_PROVIDER_LABELS[aiProvider]} API 키가 등록되지 않았습니다. 설정에서 키를 등록하거나 다른 프로바이더를 선택하세요.`}
+                ? t('pdf.localModelMissing')
+                : t('pdf.providerKeyMissing', { provider: AI_PROVIDER_LABELS[aiProvider] })}
             </span>
           </div>
         )}
@@ -977,14 +969,14 @@ export function AiReportTab() {
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-xs text-[var(--color-text-tertiary)]">
-              모델
+              {t('pdf.modelHeader')}
               {hasDynamicForCurrent && (
                 <span
                   className={`ml-1.5 text-[10px] ${
                     isDynamicModelList ? 'text-[var(--color-status-success-fg)]' : 'text-[var(--color-text-tertiary)]'
                   }`}
                 >
-                  • {isDynamicModelList ? '실시간 목록' : '기본 목록'} ({modelOptions.length}개)
+                  • {isDynamicModelList ? t('pdf.liveListIndicator') : t('pdf.defaultListIndicator')} ({t('pdf.modelCountKinds', { count: modelOptions.length })})
                 </span>
               )}
             </label>
@@ -997,24 +989,24 @@ export function AiReportTab() {
                   disabled={refreshingModels}
                   title={
                     preferHardcodedList
-                      ? 'API 로 가져온 실시간 모델 목록으로 전환'
-                      : '하드코딩된 기본 모델 목록으로 전환'
+                      ? t('pdf.tooltipLiveList')
+                      : t('pdf.tooltipDefaultList')
                   }
                   className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none rounded px-1.5 py-0.5 border border-[var(--color-border-default)]"
                   aria-pressed={!preferHardcodedList}
                 >
-                  {preferHardcodedList ? '실시간 보기' : '기본 보기'}
+                  {preferHardcodedList ? t('pdf.showLive') : t('pdf.showDefault')}
                 </button>
               )}
               <button
                 type="button"
                 onClick={handleRefreshModels}
                 disabled={refreshingModels}
-                title="해당 프로바이더의 실제 사용 가능한 모델 목록을 API 로 가져옵니다"
+                title={t('pdf.refreshTooltip')}
                 className="inline-flex items-center gap-1 text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none rounded px-1.5 py-0.5"
               >
                 <RefreshCw className={`w-3 h-3 ${refreshingModels ? 'animate-spin' : ''}`} />
-                {refreshingModels ? '불러오는 중...' : '모델 목록 새로고침'}
+                {refreshingModels ? t('pdf.refreshing') : t('pdf.refresh')}
               </button>
             </div>
           </div>
@@ -1049,12 +1041,12 @@ export function AiReportTab() {
               - dynamic 페치 후 hardcoded 모드: 토글 안내 */}
           {!modelsError && !hasDynamicForCurrent && (
             <p className="text-[11px] text-[var(--color-text-disabled)] mt-1.5">
-              기본 목록을 표시 중입니다. 새로고침하면 API 키로 직접 조회한 실제 사용 가능한 모델 목록이 나타납니다.
+              {t('pdf.infoHardcoded')}
             </p>
           )}
           {!modelsError && hasDynamicForCurrent && preferHardcodedList && (
             <p className="text-[11px] text-[var(--color-text-disabled)] mt-1.5">
-              하드코딩된 기본 목록을 보고 있습니다. "실시간 보기" 로 전환하면 직전에 가져온 실시간 목록으로 돌아갑니다.
+              {t('pdf.infoToggleHint')}
             </p>
           )}
 
@@ -1069,12 +1061,12 @@ export function AiReportTab() {
                 {showFullModelList ? (
                   <>
                     <ChevronUp className="w-3 h-3" />
-                    전체 목록 접기
+                    {t('pdf.fullListCollapse')}
                   </>
                 ) : (
                   <>
                     <ChevronDown className="w-3 h-3" />
-                    전체 목록 펼쳐보기 ({modelOptions.length}개)
+                    {t('pdf.fullListExpand', { count: modelOptions.length })}
                   </>
                 )}
               </button>
@@ -1088,23 +1080,23 @@ export function AiReportTab() {
                     <button
                       type="button"
                       onClick={handleCopyModelList}
-                      title="전체 목록을 클립보드로 복사"
+                      title={t('pdf.copyTooltip')}
                       className="inline-flex items-center gap-1 text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none rounded px-1.5 py-0.5"
                     >
                       {copyFeedback === 'copied' ? (
                         <>
                           <Check className="w-3 h-3 text-[var(--color-status-success-fg)]" />
-                          복사됨
+                          {t('pdf.copied')}
                         </>
                       ) : copyFeedback === 'failed' ? (
                         <>
                           <AlertCircle className="w-3 h-3 text-[var(--color-status-error-fg)]" />
-                          복사 실패
+                          {t('pdf.copyFailed')}
                         </>
                       ) : (
                         <>
                           <Copy className="w-3 h-3" />
-                          복사
+                          {t('pdf.copy')}
                         </>
                       )}
                     </button>
@@ -1133,7 +1125,7 @@ export function AiReportTab() {
             className="w-full py-2.5 text-sm font-medium bg-[var(--color-status-success-fg)] hover:bg-[var(--color-status-success-fg)] text-white rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--color-status-success-fg)]"
           >
             <Sparkles className="w-4 h-4" />
-            리포트 생성
+            {t('pdf.generateReportButton')}
           </button>
         );
       })()}
@@ -1147,25 +1139,25 @@ export function AiReportTab() {
             <div className="flex items-center gap-1.5 text-xs text-[var(--color-text-tertiary)]">
               <History className="w-3.5 h-3.5" />
               <span>
-                최근 생성된 리포트 ({aiReportHistoryEntries.filter(isSingleEntry).length})
+                {t('pdf.recentReports', { count: aiReportHistoryEntries.filter(isSingleEntry).length })}
               </span>
             </div>
             {confirmClearHistory ? (
               <div className="flex items-center gap-2 text-[11px]">
-                <span className="text-[var(--color-text-tertiary)]">모두 삭제할까요?</span>
+                <span className="text-[var(--color-text-tertiary)]">{t('pdf.deleteAllConfirm')}</span>
                 <button
                   type="button"
                   onClick={handleClearHistory}
                   className="text-[var(--color-status-error-fg)] hover:text-[var(--color-status-error-fg)] underline"
                 >
-                  예
+                  {t('pdf.yes')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmClearHistory(false)}
                   className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] underline"
                 >
-                  취소
+                  {t('pdf.cancel')}
                 </button>
               </div>
             ) : (
@@ -1174,7 +1166,7 @@ export function AiReportTab() {
                 onClick={() => setConfirmClearHistory(true)}
                 className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-status-error-fg)] transition-colors"
               >
-                전체 삭제
+                {t('pdf.deleteAll')}
               </button>
             )}
           </div>
@@ -1185,14 +1177,14 @@ export function AiReportTab() {
               return showAllHistory ? singleEntries : singleEntries.slice(0, 3);
             })().map(
               (e) => {
-                const presetLabel =
-                  PRESETS.find((p) => p.type === e.presetType)?.label ?? e.presetType;
+                const presetMeta = PRESETS.find((p) => p.type === e.presetType);
+                const presetLabel = presetMeta ? t(presetMeta.labelKey) : e.presetType;
                 const metaBits: string[] = [
                   AI_PROVIDER_LABELS[e.provider],
                   e.model,
                 ];
                 if (typeof e.tokensUsed === 'number') {
-                  metaBits.push(`${e.tokensUsed.toLocaleString()} 토큰`);
+                  metaBits.push(t('pdf.tokensLabel', { count: e.tokensUsed.toLocaleString() }));
                 }
                 if (typeof e.estimatedCostUsd === 'number') {
                   metaBits.push(`~$${e.estimatedCostUsd.toFixed(4)}`);
@@ -1206,7 +1198,7 @@ export function AiReportTab() {
                       type="button"
                       onClick={() => void handleRestoreHistory(e)}
                       className="flex-1 min-w-0 text-left focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none rounded"
-                      title="클릭하면 해당 리포트를 복원해 다시 다운로드할 수 있습니다"
+                      title={t('pdf.restoreTooltip')}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-[var(--color-text-primary)] truncate">
@@ -1236,9 +1228,9 @@ export function AiReportTab() {
                     <button
                       type="button"
                       onClick={() => void handleDeleteHistory(e.id)}
-                      title="이 항목 삭제"
+                      title={t('pdf.deleteEntry')}
                       className="flex-shrink-0 p-1.5 rounded text-[var(--color-text-disabled)] hover:text-[var(--color-status-error-fg)] hover:bg-[var(--color-status-error-bg)] transition-colors focus-visible:ring-2 focus-visible:ring-[var(--color-status-error-border)] focus-visible:outline-none"
-                      aria-label="히스토리 항목 삭제"
+                      aria-label={t('pdf.deleteEntryAria')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -1257,12 +1249,12 @@ export function AiReportTab() {
               {showAllHistory ? (
                 <>
                   <ChevronUp className="w-3 h-3" />
-                  접기
+                  {t('pdf.collapse')}
                 </>
               ) : (
                 <>
                   <ChevronDown className="w-3 h-3" />
-                  {aiReportHistoryEntries.filter(isSingleEntry).length - 3}개 더 보기
+                  {t('pdf.moreEntries', { count: aiReportHistoryEntries.filter(isSingleEntry).length - 3 })}
                 </>
               )}
             </button>

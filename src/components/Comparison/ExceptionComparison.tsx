@@ -1,6 +1,7 @@
 // 예외 비교 컴포넌트
 // CSS 바 차트 + A만/B만/공통 시각 구분 (NEW/RESOLVED 뱃지)
 
+import { useTranslation } from "react-i18next";
 import type { ExceptionDelta, DeltaType } from "../../utils/comparisonAnalyzer";
 import { DeltaBadge } from "../shared/DeltaBadge";
 import { HorizontalBar } from "../shared/HorizontalBar";
@@ -12,6 +13,7 @@ interface ExceptionComparisonProps {
 export function ExceptionComparison({
   exceptionDeltas,
 }: ExceptionComparisonProps) {
+  const { t } = useTranslation();
   // 빈 상태
   if (exceptionDeltas.length === 0) {
     return (
@@ -20,10 +22,10 @@ export function ExceptionComparison({
           id="comparison-exception"
           className="text-sm font-semibold text-[var(--color-text-primary)] mb-3"
         >
-          예외 비교
+          {t('comparison.exceptionComparison')}
         </h3>
         <div className="text-sm text-[var(--color-text-disabled)] py-6 text-center">
-          양쪽 모두 감지된 예외가 없습니다
+          {t('comparison.noExceptions')}
         </div>
       </section>
     );
@@ -41,10 +43,10 @@ export function ExceptionComparison({
           id="comparison-exception"
           className="text-sm font-semibold text-[var(--color-text-primary)]"
         >
-          예외 비교
+          {t('comparison.exceptionComparison')}
         </h3>
         <span className="text-xs text-[var(--color-text-disabled)]">
-          B 기준 정렬
+          {t('comparison.sortByB')}
         </span>
       </div>
 
@@ -70,7 +72,7 @@ export function ExceptionComparison({
               role="listitem"
               className="bg-[var(--color-bg-elevated)] rounded-lg px-4 py-3
                          hover:bg-[var(--color-bg-hover)] cursor-pointer"
-              title="상세 보기 -- 다음 업데이트에서 제공 예정"
+              title={t('comparison.detailComingSoon')}
             >
               {/* 헤더: 순위 + 클래스명 + 뱃지 */}
               <div className="flex items-center gap-2 mb-2">
@@ -88,13 +90,13 @@ export function ExceptionComparison({
                 {d.presence === "onlyB" && (
                   <span className="bg-[var(--color-status-warn-bg)] text-[var(--color-status-warn-fg)] rounded px-1.5 py-0.5 text-[10px] font-medium">
                     NEW
-                    <span className="sr-only">신규 예외</span>
+                    <span className="sr-only">{t('comparison.newException')}</span>
                   </span>
                 )}
                 {d.presence === "onlyA" && (
                   <span className="bg-[var(--color-status-success-fg)]/20 text-[var(--color-status-success-fg)] rounded px-1.5 py-0.5 text-[10px] font-medium">
                     RESOLVED
-                    <span className="sr-only">해결된 예외</span>
+                    <span className="sr-only">{t('comparison.resolvedException')}</span>
                   </span>
                 )}
 
@@ -117,15 +119,15 @@ export function ExceptionComparison({
                       />
                     </div>
                     <span className="text-xs text-[var(--color-text-tertiary)] font-medium w-12 text-right">
-                      {d.countA.toLocaleString()}건
+                      {t('errorPattern.countItems', { count: d.countA.toLocaleString() })}
                     </span>
                   </>
                 ) : (
                   <span
                     className="text-xs text-[var(--color-text-disabled)] italic"
-                    aria-label="건수 없음"
+                    aria-label={t('comparison.noCountAria')}
                   >
-                    (없음)
+                    {t('comparison.noCount')}
                   </span>
                 )}
               </div>
@@ -143,15 +145,15 @@ export function ExceptionComparison({
                       />
                     </div>
                     <span className="text-xs text-[var(--color-text-tertiary)] font-medium w-12 text-right">
-                      {d.countB.toLocaleString()}건
+                      {t('errorPattern.countItems', { count: d.countB.toLocaleString() })}
                     </span>
                   </>
                 ) : (
                   <span
                     className="text-xs text-[var(--color-text-disabled)] italic"
-                    aria-label="건수 없음"
+                    aria-label={t('comparison.noCountAria')}
                   >
-                    (없음)
+                    {t('comparison.noCount')}
                   </span>
                 )}
               </div>

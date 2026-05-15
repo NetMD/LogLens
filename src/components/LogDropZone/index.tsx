@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FileSearch, Radio, type LucideIcon } from "lucide-react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useLogFile } from "../../hooks/useLogFile";
@@ -8,6 +9,7 @@ import { ProgressBar } from "./ProgressBar";
 
 export type LogDropZoneVariant = "file" | "live";
 
+// VARIANT_CONFIG: 텍스트는 i18n 키 문자열로 저장. 렌더링 시점에 t() 로 변환.
 interface VariantConfig {
   Icon: LucideIcon;
   iconClassName: string;
@@ -16,11 +18,11 @@ interface VariantConfig {
   iconBoxActiveClass: string;
   iconColorClass: string;
   iconColorActiveClass: string;
-  title: string;
-  subtitle: string;
-  buttonLabel: string;
+  titleKey: string;
+  subtitleKey: string;
+  buttonLabelKey: string;
   buttonClass: string;
-  ariaLabel: string;
+  ariaLabelKey: string;
 }
 
 const VARIANT_CONFIG: Record<LogDropZoneVariant, VariantConfig> = {
@@ -32,12 +34,12 @@ const VARIANT_CONFIG: Record<LogDropZoneVariant, VariantConfig> = {
     iconBoxActiveClass: "bg-[var(--color-accent-primary-subtle-bg)]",
     iconColorClass: "text-[var(--color-text-tertiary)]",
     iconColorActiveClass: "text-[var(--color-accent-primary)]",
-    title: "분석할 로그 파일을 드래그하거나 클릭하세요",
-    subtitle: "Spring Boot / MVC 로그 파일 (.log, .txt, .csv, .gz) — 최대 500MB",
-    buttonLabel: "파일 선택",
+    titleKey: "fileAnalysis.dropzone",
+    subtitleKey: "fileAnalysis.fileSubtitle",
+    buttonLabelKey: "fileAnalysis.selectFile",
     buttonClass:
       "bg-[var(--color-button-primary-bg)] hover:bg-[var(--color-button-primary-bg)] border-[var(--color-accent-primary)] text-white",
-    ariaLabel: "분석할 로그 파일 선택",
+    ariaLabelKey: "fileAnalysis.ariaLabelFile",
   },
   live: {
     Icon: Radio,
@@ -47,12 +49,12 @@ const VARIANT_CONFIG: Record<LogDropZoneVariant, VariantConfig> = {
     iconBoxActiveClass: "bg-[var(--color-status-success-bg)]",
     iconColorClass: "text-[var(--color-text-tertiary)]",
     iconColorActiveClass: "text-[var(--color-status-success-fg)]",
-    title: "감시할 로그 파일을 드래그하거나 클릭하세요",
-    subtitle: "파일 변경을 실시간으로 추적합니다 — 최대 500MB",
-    buttonLabel: "감시 시작",
+    titleKey: "realtime.dropzone",
+    subtitleKey: "realtime.dropzoneDesc",
+    buttonLabelKey: "realtime.startWatch",
     buttonClass:
       "bg-[var(--color-status-success-fg)] hover:bg-[var(--color-status-success-fg)] border-[var(--color-status-success-border)] text-white",
-    ariaLabel: "감시할 로그 파일 선택",
+    ariaLabelKey: "fileAnalysis.ariaLabelLive",
   },
 };
 
@@ -61,6 +63,7 @@ interface Props {
 }
 
 export function LogDropZone({ variant = "file" }: Props) {
+  const { t } = useTranslation();
   const { loadFile } = useLogFile();
   const { start: startWatch } = useLogWatchActions();
   const isParsing = useLogStore((s) => s.isParsing);
@@ -160,7 +163,7 @@ export function LogDropZone({ variant = "file" }: Props) {
       <div
         role="button"
         tabIndex={0}
-        aria-label={config.ariaLabel}
+        aria-label={t(config.ariaLabelKey)}
         onClick={handleOpen}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -197,9 +200,9 @@ export function LogDropZone({ variant = "file" }: Props) {
 
           <div className="space-y-1">
             <p className="text-base font-medium text-[var(--color-text-primary)]">
-              {isDragging ? "파일을 놓으세요" : config.title}
+              {isDragging ? t('fileAnalysis.dropHere') : t(config.titleKey)}
             </p>
-            <p className="text-sm text-[var(--color-text-tertiary)]">{config.subtitle}</p>
+            <p className="text-sm text-[var(--color-text-tertiary)]">{t(config.subtitleKey)}</p>
           </div>
 
           {!isDragging && (
@@ -211,7 +214,7 @@ export function LogDropZone({ variant = "file" }: Props) {
               }}
               className={`mt-2 px-4 py-1.5 rounded-md text-sm font-medium border motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] ${config.buttonClass}`}
             >
-              {config.buttonLabel}
+              {t(config.buttonLabelKey)}
             </button>
           )}
         </div>
