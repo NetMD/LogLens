@@ -2,9 +2,9 @@ import { Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { AnalysisResult } from "../../utils/errorAnalyzer";
 import { useScrollToError } from "../../hooks/useScrollToError";
-import { useLogStore } from "../../store/logStore";
+import { useActiveFileEntries } from "../../store/activeFileSelectors";
 import { useSettingsStore } from "../../store/settingsStore";
-import { useUiStore } from "../../store/uiStore";
+import { useUiStore, useActiveDiagnosisViewOpen } from "../../store/uiStore";
 import type { ExceptionDiagnosisInput } from "../../types/diagnosis";
 import type { LogEntry } from "../../utils/logParser";
 import { Tooltip } from "../shared/Tooltip";
@@ -17,10 +17,10 @@ export function TopErrorList({ analysis }: Props) {
   const { t } = useTranslation();
   const { scrollToEntry } = useScrollToError();
   const { topErrors } = analysis;
-  const entries = useLogStore((s) => s.entries);
+  const entries = useActiveFileEntries();
   const aiProvider = useSettingsStore((s) => s.aiProvider);
   const openDiagnosis = useUiStore((s) => s.openDiagnosis);
-  const isDiagnosisViewOpen = useUiStore((s) => s.isDiagnosisViewOpen);
+  const isDiagnosisViewOpen = useActiveDiagnosisViewOpen();
 
   if (topErrors.length === 0) {
     return (

@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useUiStore } from '../../store/uiStore';
+import { useUiStore, setActiveMainView } from '../../store/uiStore';
+import { useLogStore } from '../../store/logStore';
 import { useDiagnosis } from '../../hooks/useDiagnosis';
 import { DiagnosisHeader } from './DiagnosisHeader';
 import { UnidirectionalTab } from './UnidirectionalTab';
@@ -14,12 +15,15 @@ type TabType = 'unidirectional' | 'conversational' | 'history';
 
 export function DiagnosisView() {
   const { t } = useTranslation();
-  const diagnosisInput = useUiStore((s) => s.diagnosisInput);
-  const diagnosisEntrySource = useUiStore((s) => s.diagnosisEntrySource);
-  const diagnosisEntryAppMode = useUiStore((s) => s.diagnosisEntryAppMode);
+  const activeFileId = useLogStore((s) => s.activeFileId);
+  const diagnosisInput = useUiStore((s) =>
+    activeFileId ? s.diagnoses[activeFileId]?.input ?? null : null,
+  );
+  const diagnosisEntrySource = useUiStore((s) =>
+    activeFileId ? s.diagnoses[activeFileId]?.entrySource ?? null : null,
+  );
   const closeDiagnosisAction = useUiStore((s) => s.closeDiagnosis);
   const setActiveToolTab = useUiStore((s) => s.setActiveToolTab);
-  const requestModeChange = useUiStore((s) => s.requestModeChange);
 
   const [activeTab, setActiveTab] = useState<TabType>('unidirectional');
 
@@ -45,15 +49,14 @@ export function DiagnosisView() {
 
   // 뒤로가기: 진입 경로에 따라 복귀
   const handleBack = useCallback(() => {
-    const appMode = diagnosisEntryAppMode ?? 'file';
     closeDiagnosisAction();
 
     switch (diagnosisEntrySource) {
       case 'stacktrace':
-        requestModeChange({ appMode, mainView: 'stacktrace' });
+        setActiveMainView('stacktrace');
         break;
       case 'errorPattern':
-        requestModeChange({ appMode, mainView: 'errorPattern' });
+        setActiveMainView('errorPattern');
         break;
       case 'landing':
         setActiveToolTab('ai');
@@ -61,7 +64,7 @@ export function DiagnosisView() {
       default:
         break;
     }
-  }, [closeDiagnosisAction, diagnosisEntrySource, diagnosisEntryAppMode, requestModeChange, setActiveToolTab]);
+  }, [closeDiagnosisAction, diagnosisEntrySource, setActiveToolTab]);
 
   if (!diagnosisInput) return null;
 

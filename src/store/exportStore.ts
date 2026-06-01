@@ -1,4 +1,4 @@
-// PDF/문서 내보내기 전용 상태 store
+// PDF/문서 내보내기 전용 상태 store — R13: fileId 스코프 byFile Record (FR-16, BL-12)
 // logStore를 읽기 전용으로만 참조 (변경 0건 원칙)
 
 import { create } from 'zustand';
@@ -31,7 +31,7 @@ export interface IncludeSections {
 // 출력 언어 (8차 신규)
 export type OutputLanguage = 'ko' | 'en';
 
-interface ExportState {
+export interface ExportState {
   // 기본 PDF 옵션
   title: string;
   saveFileName: string;
@@ -57,12 +57,26 @@ interface ExportState {
   generationError: string | null;
   generatedContent: string | null;
   generatedBlob: Blob | null;
+}
 
-  // Actions
+interface ExportStoreState {
+  byFile: Record<string, ExportState>; // fileId 스코프
+  currentFileId: string | null; // 활성 탭 (UI 표시 기준)
+
+  // 액션 (모두 fileId 인자 — currentFileId 기본)
+  setCurrentFileId: (fileId: string | null) => void;
+  ensureFileState: (fileId: string) => void;
+  removeFileState: (fileId: string) => void;
+  setStateForFile: (fileId: string, patch: Partial<ExportState>) => void;
+  resetGeneration: (fileId: string) => void;
+  resetAll: (fileId: string) => void;
+  toggleSection: (fileId: string, key: keyof IncludeSections) => void;
+  appendStreamingBuffer: (fileId: string, delta: string) => void;
+
+  // 레거시 호환 setter (currentFileId 위임) — 소비처 회귀 표면 최소화 (§4.4)
   setTitle: (t: string) => void;
   setSaveFileName: (n: string) => void;
   setIsFromHistory: (v: boolean) => void;
-  toggleSection: (key: keyof IncludeSections) => void;
   setStacktraceLimit: (n: StacktraceLimit) => void;
   setActiveTab: (tab: 'basic' | 'ai') => void;
   setPresetType: (p: PresetType) => void;
@@ -73,13 +87,23 @@ interface ExportState {
   setGenerationError: (e: string | null) => void;
   setGeneratedContent: (c: string | null) => void;
   setGeneratedBlob: (b: Blob | null) => void;
-  // --- 8차 액션 ---
   setOutputLanguage: (l: OutputLanguage) => void;
   setProjectRoot: (p: string | null) => void;
-  appendStreamingBuffer: (delta: string) => void;
   resetStreamingBuffer: () => void;
-  resetGeneration: () => void;
-  resetAll: () => void;
+}
+
+// currentFileId 위임 헬퍼
+function patchCurrent(
+  set: (fn: (s: ExportStoreState) => Partial<ExportStoreState>) => void,
+  patch: Partial<ExportState>,
+): void {
+  set((s) => {
+    if (!s.currentFileId) return {};
+    const prev = s.byFile[s.currentFileId] ?? makeInitialExportState();
+    return {
+      byFile: { ...s.byFile, [s.currentFileId]: { ...prev, ...patch } },
+    };
+  });
 }
 
 const initialIncludeSections: IncludeSections = {
@@ -90,80 +114,151 @@ const initialIncludeSections: IncludeSections = {
   stacktrace: true,
 };
 
-export const useExportStore = create<ExportState>((set) => ({
-  title: '',
-  saveFileName: '',
-  isFromHistory: false,
-  includeSections: { ...initialIncludeSections },
-  stacktraceLimit: 5,
-  activeTab: 'basic',
-  presetType: 'incident',
-  inputMode: 'preset',
-  outputFormat: 'pdf',
-  uploadedFile: null,
-  // 8차 initial state
-  outputLanguage: 'ko',
-  projectRoot: null,
-  streamingBuffer: '',
-  generationStatus: 'idle',
-  generationError: null,
-  generatedContent: null,
-  generatedBlob: null,
+export function makeInitialExportState(): ExportState {
+  return {
+    title: '',
+    saveFileName: '',
+    isFromHistory: false,
+    includeSections: { ...initialIncludeSections },
+    stacktraceLimit: 5,
+    activeTab: 'basic',
+    presetType: 'incident',
+    inputMode: 'preset',
+    outputFormat: 'pdf',
+    uploadedFile: null,
+    outputLanguage: 'ko',
+    projectRoot: null,
+    streamingBuffer: '',
+    generationStatus: 'idle',
+    generationError: null,
+    generatedContent: null,
+    generatedBlob: null,
+  };
+}
 
-  setTitle: (t) => set({ title: t }),
-  setSaveFileName: (n) => set({ saveFileName: n }),
-  setIsFromHistory: (v) => set({ isFromHistory: v }),
-  toggleSection: (key) =>
+export const useExportStore = create<ExportStoreState>((set) => ({
+  byFile: {},
+  currentFileId: null,
+
+  setCurrentFileId: (fileId) => set({ currentFileId: fileId }),
+
+  ensureFileState: (fileId) =>
+    set((s) => {
+      if (s.byFile[fileId]) return s;
+      return { byFile: { ...s.byFile, [fileId]: makeInitialExportState() } };
+    }),
+
+  removeFileState: (fileId) =>
+    set((s) => {
+      if (!s.byFile[fileId]) return s;
+      const next = { ...s.byFile };
+      delete next[fileId];
+      return { byFile: next };
+    }),
+
+  setStateForFile: (fileId, patch) =>
+    set((s) => {
+      const prev = s.byFile[fileId] ?? makeInitialExportState();
+      return { byFile: { ...s.byFile, [fileId]: { ...prev, ...patch } } };
+    }),
+
+  resetGeneration: (fileId) =>
+    set((s) => {
+      const prev = s.byFile[fileId] ?? makeInitialExportState();
+      return {
+        byFile: {
+          ...s.byFile,
+          [fileId]: {
+            ...prev,
+            generationStatus: 'idle',
+            generationError: null,
+            generatedContent: null,
+            generatedBlob: null,
+            streamingBuffer: '',
+          },
+        },
+      };
+    }),
+
+  resetAll: (fileId) =>
     set((s) => ({
-      includeSections: { ...s.includeSections, [key]: !s.includeSections[key] },
+      byFile: { ...s.byFile, [fileId]: makeInitialExportState() },
     })),
-  setStacktraceLimit: (n) => set({ stacktraceLimit: n }),
-  setActiveTab: (tab) => set({ activeTab: tab }),
-  setPresetType: (p) => set({ presetType: p }),
-  setInputMode: (m) => set({ inputMode: m }),
-  setOutputFormat: (f) => set({ outputFormat: f }),
-  setUploadedFile: (f) => set({ uploadedFile: f }),
-  setGenerationStatus: (s) => set({ generationStatus: s }),
-  setGenerationError: (e) => set({ generationError: e }),
-  setGeneratedContent: (c) => set({ generatedContent: c }),
-  setGeneratedBlob: (b) => set({ generatedBlob: b }),
-  // --- 8차 액션 구현 ---
-  setOutputLanguage: (l) => set({ outputLanguage: l }),
-  setProjectRoot: (p) => set({ projectRoot: p }),
-  appendStreamingBuffer: (delta) =>
-    set((s) => ({ streamingBuffer: s.streamingBuffer + delta })),
-  resetStreamingBuffer: () => set({ streamingBuffer: '' }),
-  resetGeneration: () =>
-    set({
-      generationStatus: 'idle',
-      generationError: null,
-      generatedContent: null,
-      generatedBlob: null,
-      // 8차: streamingBuffer 리셋. projectRoot/outputLanguage는 유지 (세션 내 재사용)
-      streamingBuffer: '',
+
+  toggleSection: (fileId, key) =>
+    set((s) => {
+      const prev = s.byFile[fileId] ?? makeInitialExportState();
+      return {
+        byFile: {
+          ...s.byFile,
+          [fileId]: {
+            ...prev,
+            includeSections: {
+              ...prev.includeSections,
+              [key]: !prev.includeSections[key],
+            },
+          },
+        },
+      };
     }),
-  resetAll: () =>
-    set({
-      title: '',
-      saveFileName: '',
-      isFromHistory: false,
-      includeSections: { ...initialIncludeSections },
-      stacktraceLimit: 5,
-      activeTab: 'basic',
-      presetType: 'incident',
-      inputMode: 'preset',
-      outputFormat: 'pdf',
-      uploadedFile: null,
-      // 8차: resetAll 시 projectRoot/outputLanguage도 초기화
-      outputLanguage: 'ko',
-      projectRoot: null,
-      streamingBuffer: '',
-      generationStatus: 'idle',
-      generationError: null,
-      generatedContent: null,
-      generatedBlob: null,
+
+  appendStreamingBuffer: (fileId, delta) =>
+    set((s) => {
+      const prev = s.byFile[fileId] ?? makeInitialExportState();
+      return {
+        byFile: {
+          ...s.byFile,
+          [fileId]: { ...prev, streamingBuffer: prev.streamingBuffer + delta },
+        },
+      };
     }),
+
+  // 레거시 호환 setter — currentFileId 위임
+  setTitle: (t) => patchCurrent(set, { title: t }),
+  setSaveFileName: (n) => patchCurrent(set, { saveFileName: n }),
+  setIsFromHistory: (v) => patchCurrent(set, { isFromHistory: v }),
+  setStacktraceLimit: (n) => patchCurrent(set, { stacktraceLimit: n }),
+  setActiveTab: (tab) => patchCurrent(set, { activeTab: tab }),
+  setPresetType: (p) => patchCurrent(set, { presetType: p }),
+  setInputMode: (m) => patchCurrent(set, { inputMode: m }),
+  setOutputFormat: (f) => patchCurrent(set, { outputFormat: f }),
+  setUploadedFile: (f) => patchCurrent(set, { uploadedFile: f }),
+  setGenerationStatus: (st) => patchCurrent(set, { generationStatus: st }),
+  setGenerationError: (e) => patchCurrent(set, { generationError: e }),
+  setGeneratedContent: (c) => patchCurrent(set, { generatedContent: c }),
+  setGeneratedBlob: (b) => patchCurrent(set, { generatedBlob: b }),
+  setOutputLanguage: (l) => patchCurrent(set, { outputLanguage: l }),
+  setProjectRoot: (p) => patchCurrent(set, { projectRoot: p }),
+  resetStreamingBuffer: () => patchCurrent(set, { streamingBuffer: '' }),
 }));
+
+// --- 호환 셀렉터/액션 계층 (활성 탭 currentFileId 기준, §4.4) ---
+// 큐레이터 #1: 단일 필드 selector 유지. byFile[currentFileId]?.X 를 단일 selector 로 읽는다.
+
+const EMPTY_EXPORT = makeInitialExportState();
+
+/** 활성 탭의 ExportState 단일 필드를 읽는 셀렉터 (없으면 기본값) */
+export function useActiveExportField<K extends keyof ExportState>(
+  key: K,
+): ExportState[K] {
+  return useExportStore((s) => {
+    const fid = s.currentFileId;
+    return fid ? s.byFile[fid]?.[key] ?? EMPTY_EXPORT[key] : EMPTY_EXPORT[key];
+  });
+}
+
+/** 활성 탭에 patch 적용 (currentFileId 없으면 no-op) */
+export function patchActiveExport(patch: Partial<ExportState>): void {
+  const { currentFileId, setStateForFile } = useExportStore.getState();
+  if (!currentFileId) return;
+  setStateForFile(currentFileId, patch);
+}
+
+/** 활성 탭의 ExportState 즉시 조회 (액션 내부용) */
+export function getActiveExport(): ExportState {
+  const { currentFileId, byFile } = useExportStore.getState();
+  return (currentFileId ? byFile[currentFileId] : undefined) ?? EMPTY_EXPORT;
+}
 
 // --- 파생 상태 (순수 함수) ---
 

@@ -4,7 +4,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useExportStore } from '../../store/exportStore';
+import { useActiveExportField } from '../../store/exportStore';
 
 interface Props {
   visible: boolean;
@@ -12,7 +12,7 @@ interface Props {
 
 export function StreamingPreview({ visible }: Props) {
   const { t } = useTranslation();
-  const buffer = useExportStore((s) => s.streamingBuffer);
+  const buffer = useActiveExportField('streamingBuffer');
   const preRef = useRef<HTMLPreElement>(null);
 
   // 버퍼 갱신 시 자동 스크롤 (맨 아래로)

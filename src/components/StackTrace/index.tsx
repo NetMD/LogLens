@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useLogStore } from "../../store/logStore";
-import { useUiStore } from "../../store/uiStore";
+import {
+  useActiveFileEntries,
+  useActiveFileIsParsing,
+  useActiveFile,
+} from "../../store/activeFileSelectors";
 import { useSettingsStore } from "../../store/settingsStore";
 import { StackTraceCard } from "./StackTraceCard";
 import type { LogLevel } from "../../utils/logParser";
@@ -28,13 +32,30 @@ export function StackTraceView() {
   // [큐레이터 제약 P0] t() 호출은 컴포넌트 최상단에서만. useMemo deps 에는 t 자체도 포함 금지.
   const { t } = useTranslation();
   // selector 분리 — store 의 다른 필드(progress 등) 변경으로 인한 리렌더 차단
-  const entries = useLogStore((s) => s.entries);
-  const isParsing = useLogStore((s) => s.isParsing);
-  const progress = useLogStore((s) => s.progress);
-  const { searchQuery, setSearchQuery } = useUiStore();
-  const selectedEntryId = useUiStore((s) => s.selectedEntryId);
+  const entries = useActiveFileEntries();
+  const isParsing = useActiveFileIsParsing();
+  const activeFileId = useLogStore((s) => s.activeFileId);
+  const progress = useLogStore((s) =>
+    s.activeFileId ? s.files[s.activeFileId]?.progress ?? 0 : 0,
+  );
+  // 탭-스코프 UI (FileLogState 에 보존 §2.5) — searchQuery 와 levelFilter 동형:
+  // 활성 파일의 단일 필드 셀렉터로 읽고(전체구독 금지 G-1), patchTabUi 로 활성 fileId 에 기록.
+  // App.tsx 가 <StackTraceView /> 를 key 없이 렌더해 탭 전환 시 인스턴스를 재사용하므로,
+  // 활성 fileId 가 바뀌면 셀렉터가 해당 탭의 보존값을 자동 반영 → 탭별 보존/복원 + 누수 차단.
+  const searchQuery = useLogStore((s) =>
+    s.activeFileId ? s.files[s.activeFileId]?.searchQuery ?? "" : "",
+  );
+  const levelFilter = useLogStore((s) =>
+    s.activeFileId ? s.files[s.activeFileId]?.levelFilter ?? "ALL" : "ALL",
+  );
+  const selectedEntryId = useActiveFile()?.selectedEntryId ?? null;
+  const setSearchQuery = (q: string) => {
+    if (activeFileId) useLogStore.getState().patchTabUi(activeFileId, { searchQuery: q });
+  };
+  const setLevelFilter = (value: LogLevel | "ALL") => {
+    if (activeFileId) useLogStore.getState().patchTabUi(activeFileId, { levelFilter: value });
+  };
   const showDebugLog = useSettingsStore((s) => s.showDebugLog);
-  const [levelFilter, setLevelFilter] = useState<LogLevel | "ALL">("ALL");
 
   // 가상 스크롤 컨테이너 ref — 30,000 카드 전체 마운트 회피 (화면에 보이는 ~20개만)
   const parentRef = useRef<HTMLDivElement>(null);

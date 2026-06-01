@@ -2,7 +2,7 @@
 // 여러 프로바이더에 동일 프롬프트를 병렬 전송, 각 결과를 콜백으로 독립 전달한다.
 // 기존 generateAiReport 는 단일 생성 전용으로 그대로 유지.
 
-import { useExportStore } from '../../store/exportStore';
+import { getActiveExport } from '../../store/exportStore';
 import { buildAnalysisData } from './dataBuilder';
 import { buildPrompt } from './promptTemplates';
 import { getAiProvider } from './providers';
@@ -58,9 +58,9 @@ export async function generateComparisonReports(params: {
   const { targets, presetType, outputLanguage, signal, onUpdate } = params;
 
   // ── 1. 공유 데이터 준비 (1회) ──
-  const store = useExportStore.getState();
+  const exp = getActiveExport();
   const payload: AnalysisPayload = await buildAnalysisData({
-    projectRoot: store.projectRoot,
+    projectRoot: exp.projectRoot,
     language: outputLanguage,
     abortSignal: signal,
   });

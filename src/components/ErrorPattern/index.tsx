@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useLogStore } from "../../store/logStore";
+import { useActiveFileAnalysis } from "../../store/activeFileSelectors";
 import { SummaryCards } from "./SummaryCards";
 import { TimelineChart } from "./TimelineChart";
 import { TopErrorList } from "./TopErrorList";
@@ -9,7 +9,7 @@ export function ErrorPatternView() {
   // (현재 본 컴포넌트는 useMemo 가 없지만, 회귀 방지 주석을 명시한다.)
   const { t } = useTranslation();
   // selector 분리 — store 의 다른 필드(progress, entries 등) 변경으로 인한 리렌더 차단
-  const analysis = useLogStore((s) => s.analysis);
+  const analysis = useActiveFileAnalysis();
 
   if (!analysis) {
     return (

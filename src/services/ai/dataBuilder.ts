@@ -8,8 +8,8 @@
 //   fileSize < 5MB, root=null    → summaryMode='full',    Top 10, stack 포함(Top 5), source 제외
 //   fileSize < 5MB, root !== null→ summaryMode='full',    Top 10, stack 포함(Top 5), source 포함
 
-import { useLogStore } from '../../store/logStore';
-import { useExportStore } from '../../store/exportStore';
+import { getActiveFile } from '../../store/activeFileSelectors';
+import { getActiveExport } from '../../store/exportStore';
 import { resolveSources } from './sourceCodeResolver';
 import type {
   AnalysisPayload,
@@ -67,11 +67,15 @@ function extractShortClassName(fqn: string): string {
 export async function buildAnalysisData(
   options: BuildOptions,
 ): Promise<AnalysisPayload> {
-  const { analysis, entries, fileName, fileSize } = useLogStore.getState();
+  const activeF = getActiveFile();
+  const analysis = activeF?.analysis ?? null;
+  const entries = activeF?.entries ?? [];
+  const fileName = activeF?.fileName ?? null;
+  const fileSize = activeF?.fileSize ?? 0;
   if (!analysis) {
     throw new AiApiError('PARSE_ERROR', 'analysis is null');
   }
-  const { isFromHistory } = useExportStore.getState();
+  const { isFromHistory } = getActiveExport();
 
   const summaryMode = decideSummaryMode(fileSize, isFromHistory);
   const topLimit = summaryMode === 'summary' ? 5 : 10;

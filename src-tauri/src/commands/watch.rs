@@ -29,6 +29,8 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc;
 
+use crate::path_guard;
+
 /// 세션 식별자 (uuid v4 문자열)
 pub type SessionId = String;
 
@@ -47,26 +49,13 @@ const FLUSH_INTERVAL_MS: u64 = 100;
 /// 파일 삭제 → 재생성 허용 grace period
 const RECREATE_GRACE: Duration = Duration::from_secs(5);
 
-/// 경로 길이 상한
-const MAX_PATH_LEN: usize = 4096;
-
 /// FsEvent 큐 용량
 const SIG_CHANNEL_CAPACITY: usize = 256;
 
 /// 한 라인 최대 바이트 (Security L-4) — 초과 시 [TRUNCATED] 마커 후 drain
 const MAX_LINE_BYTES: u64 = 1 * 1024 * 1024;
 
-/// 보안상 접근 차단 대상 경로 substring (Security M-1)
-/// canonical path 문자열을 슬래시 정규화 + 소문자 변환 후 부분일치 검사한다.
-const BLOCKED_PATH_SUBSTRINGS: &[&str] = &[
-    "/.ssh/",
-    "/.aws/",
-    "/.gnupg/",
-    "/etc/shadow",
-    "/etc/sudoers",
-    "/.config/gcloud/",
-    "/.kube/",
-];
+// 경로 길이 상한 / 민감 경로 차단 목록은 공통 모듈(path_guard)로 단일화 (Security M-R13-1).
 
 // ============================================================================
 // 에러 타입
@@ -235,9 +224,9 @@ pub struct LogWatchStoppedPayload {
 // ============================================================================
 
 fn validate_path(path_str: &str) -> Result<PathBuf, WatchError> {
-    if path_str.len() > MAX_PATH_LEN {
-        return Err(WatchError::InvalidPath("경로가 너무 깁니다".into()));
-    }
+    // 경로 길이 상한 (공통 path_guard, Security M-R13-1)
+    path_guard::check_path_len(path_str)
+        .map_err(|r| WatchError::InvalidPath(r.message().into()))?;
 
     let p = Path::new(path_str);
     let canonical = p
@@ -251,17 +240,9 @@ fn validate_path(path_str: &str) -> Result<PathBuf, WatchError> {
         ));
     }
 
-    // 민감 경로 블랙리스트 검사 (Security M-1)
-    // Windows 백슬래시를 슬래시로 정규화한 뒤 소문자 비교
-    let canonical_str = canonical.to_string_lossy();
-    let normalized = canonical_str.replace('\\', "/").to_lowercase();
-    for blocked in BLOCKED_PATH_SUBSTRINGS {
-        if normalized.contains(blocked) {
-            return Err(WatchError::InvalidPath(
-                "접근이 허용되지 않은 경로입니다".into(),
-            ));
-        }
-    }
+    // 민감 경로 차단 목록 검사 (공통 path_guard, Security M-1 / M-R13-1)
+    path_guard::check_blocked(&canonical)
+        .map_err(|r| WatchError::InvalidPath(r.message().into()))?;
 
     Ok(canonical)
 }
@@ -779,10 +760,17 @@ async fn flush_loop(
 // Tauri commands
 // ============================================================================
 
+/// 실시간 감시를 시작한다.
+///
+/// `start_offset` (R13 BE-2 / GATE-R13-1, 설계 §0.2 / §3.3):
+///  - `None`  : 신규 감시 — 파일 끝에서 tail 100 라인을 읽고 그 끝(EOF) offset 부터 감시한다 (기존 동작).
+///  - `Some(off)`: 비활성 live 탭 재활성화 catch-up — tail 대신 `off` 부터 EOF 까지 누락 없이 따라잡는다.
+///    `read_appended_into` 를 재사용하므로 신규 인덱싱·crate 가 필요 없다.
 #[tauri::command]
 pub async fn start_watch(
     app: AppHandle,
     path: String,
+    start_offset: Option<u64>,
 ) -> Result<StartWatchResponse, WatchError> {
     // 1) 경로 검증을 먼저 수행 (Security L-3)
     //    — canonicalize 나 블랙리스트 실패 시 기존 세션을 건드리지 않고 즉시 에러 반환.
@@ -811,8 +799,20 @@ pub async fn start_watch(
         }
     }
 
-    // 3) tail 100 라인 읽기
-    let (initial_lines, start_offset) = read_tail_lines(&canonical, TAIL_TARGET_LINES)?;
+    // 3) 초기 라인 + 시작 offset 결정
+    //    - start_offset 가 Some 이면: 해당 offset 부터 EOF 까지 catch-up (GATE-R13-1, 누락 0).
+    //    - None 이면: 기존대로 tail 100 라인.
+    let (initial_lines, start_offset) = match start_offset {
+        Some(resume_offset) => {
+            // catch-up: read_appended_into 재사용 — buffer 에 push 된 라인을 initial_lines 로 반환.
+            let mut catchup_buf: VecDeque<String> = VecDeque::with_capacity(BUFFER_MAX);
+            let mut dropped: u64 = 0;
+            let new_offset =
+                read_appended_into(&canonical, resume_offset, &mut catchup_buf, &mut dropped)?;
+            (catchup_buf.into_iter().collect::<Vec<String>>(), new_offset)
+        }
+        None => read_tail_lines(&canonical, TAIL_TARGET_LINES)?,
+    };
 
     // 4) file_id 획득
     let file_id = get_file_id(&canonical).ok();

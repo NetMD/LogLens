@@ -31,7 +31,7 @@ export function HistoryView() {
   const setSelectedId = useHistoryStore((s) => s.setSelectedId);
   const { remove, clear } = useHistory();
   const { startComparison } = useComparisonFile();
-  const { loadFile } = useLogFile();
+  const { loadFileAsTab } = useLogFile();
 
   // 비교 선택 상태
   const selection = useHistorySelection();
@@ -63,7 +63,7 @@ export function HistoryView() {
     prevSelectedIdRef.current = selectedId;
   }, [selectedId]);
 
-  // PDF 내보내기 버튼 클릭: 파일 존재 여부에 따라 파싱 or fallback
+  // PDF 내보내기 버튼 클릭: 파일 존재 여부에 따라 새 탭 재파싱 or 요약 fallback 탭 (BL-14)
   const handleExportPdf = async (entry: HistoryEntry) => {
     // 파일 존재 확인
     let fileExists = false;
@@ -75,24 +75,33 @@ export function HistoryView() {
     }
 
     if (fileExists) {
-      // 원본 파일 존재 -> 재파싱 + ExportView 전환 (activeToolTab 유지)
-      useExportStore.setState({ isFromHistory: false });
+      // 원본 파일 존재 -> 새 탭 생성 + 재파싱 + ExportView 전환 (BL-14)
       useUiStore.getState().setActiveToolTab('export');
       try {
-        await loadFile(entry.filePath, { preserveProTab: true });
+        await loadFileAsTab(entry.filePath);
+        const fid = useLogStore.getState().activeFileId;
+        if (fid) {
+          useExportStore.getState().ensureFileState(fid);
+          useExportStore.getState().setCurrentFileId(fid);
+          useExportStore.getState().setStateForFile(fid, { isFromHistory: false });
+        }
       } catch (e) {
         toast.error(t('history.openFailed'), { description: String(e) });
       }
       return;
     }
 
-    // 원본 파일 없음 -> 저장된 summary로 logStore.analysis 직접 구성
-    const logReset = useLogStore.getState().reset;
-    const setFile = useLogStore.getState().setFile;
-    const setAnalysis = useLogStore.getState().setAnalysis;
-    logReset();
-    setFile(entry.fileName, entry.filePath, entry.fileSize);
-    setAnalysis({
+    // 원본 파일 없음 -> 요약 fallback 새 탭 (BL-14)
+    const fileId = crypto.randomUUID();
+    useLogStore.getState().addFileTab({
+      fileId,
+      kind: 'file',
+      fileName: entry.fileName,
+      filePath: entry.filePath,
+      fileSize: entry.fileSize,
+    });
+    useLogStore.getState().setActiveFileId(fileId);
+    useLogStore.getState().setAnalysis(fileId, {
       totalEntries: entry.summary.totalEntries,
       levelCounts: entry.summary.levelCounts,
       topErrors: entry.summary.topErrors,
@@ -100,24 +109,22 @@ export function HistoryView() {
       timeline: [],
     });
 
-    // export store 초기화 + fallback 플래그 설정
-    useExportStore.setState({
+    // export store 초기화 + fallback 플래그 설정 (스택트레이스/타임라인 제외)
+    useExportStore.getState().ensureFileState(fileId);
+    useExportStore.getState().setCurrentFileId(fileId);
+    useExportStore.getState().setStateForFile(fileId, {
       title: '',
       saveFileName: '',
       isFromHistory: true,
+      includeSections: {
+        info: true,
+        summaryCards: true,
+        timeline: false,
+        topErrors: true,
+        stacktrace: false,
+      },
     });
 
-    // 스택트레이스/타임라인은 원본이 없으므로 제외
-    useExportStore.setState((s) => ({
-      includeSections: {
-        ...s.includeSections,
-        stacktrace: false,
-        timeline: false,
-      },
-    }));
-
-    // file 모드로 전환 + export 탭 활성화
-    useUiStore.getState().setAppMode('file');
     useUiStore.getState().setActiveToolTab('export');
   };
 

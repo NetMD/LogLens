@@ -16,11 +16,21 @@ import {
 import logoUrl from "../../assets/logo.svg";
 import { useLogStore } from "../../store/logStore";
 import {
+  useActiveFile,
+  useActiveFileAnalysis,
+} from "../../store/activeFileSelectors";
+import { useExportStore } from "../../store/exportStore";
+import {
   useUiStore,
+  useAppMode,
+  useMainView,
+  useActiveDiagnosisViewOpen,
+  setActiveMainView,
   type AppMode,
   type MainView,
   type ToolTab,
 } from "../../store/uiStore";
+import { activateLiveTab } from "../../hooks/useLogWatch";
 import { useCloseFile } from "../../hooks/useCloseFile";
 import { useModeSwitch } from "../../hooks/useModeSwitch";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
@@ -107,19 +117,26 @@ const TOOL_NAV_ITEMS: ToolNavItem[] = [
 
 export function Sidebar() {
   const { t } = useTranslation();
-  const fileName = useLogStore((s) => s.fileName);
-  const fileSize = useLogStore((s) => s.fileSize);
-  const analysis = useLogStore((s) => s.analysis);
-  const isParsing = useLogStore((s) => s.isParsing);
-  const progress = useLogStore((s) => s.progress);
-  const watchMode = useLogStore((s) => s.watchMode);
-  const entriesLength = useLogStore((s) => s.entries.length);
+  const activeFile = useActiveFile();
+  const fileName = activeFile?.fileName ?? null;
+  const fileSize = activeFile?.fileSize ?? 0;
+  const analysis = useActiveFileAnalysis();
+  const isParsing = activeFile?.isParsing ?? false;
+  const progress = activeFile?.progress ?? 0;
+  const watchMode = activeFile?.watchMode ?? "idle";
+  const entriesLength = activeFile?.entries.length ?? 0;
 
-  const appMode = useUiStore((s) => s.appMode);
-  const mainView = useUiStore((s) => s.mainView);
-  const requestModeChange = useUiStore((s) => s.requestModeChange);
+  // 열린 파일 목록 (탭바와 동일 정보 — 세로 조망)
+  const fileOrder = useLogStore((s) => s.fileOrder);
+  const files = useLogStore((s) => s.files);
+  const activeFileId = useLogStore((s) => s.activeFileId);
+
+  const appMode = useAppMode();
+  const mainView = useMainView();
+  const requestModeChange = (next: { appMode: AppMode; mainView: MainView }) =>
+    setActiveMainView(next.mainView);
   const activeToolTab = useUiStore((s) => s.activeToolTab);
-  const isDiagnosisViewOpen = useUiStore((s) => s.isDiagnosisViewOpen);
+  const isDiagnosisViewOpen = useActiveDiagnosisViewOpen();
   const setActiveToolTab = useUiStore((s) => s.setActiveToolTab);
   const fileCollapsed = useUiStore((s) => s.sidebarFileGroupCollapsed);
   const liveCollapsed = useUiStore((s) => s.sidebarLiveGroupCollapsed);
@@ -275,7 +292,7 @@ export function Sidebar() {
         <div className="relative px-4 py-3 border-b border-[var(--color-border-default)]">
           <button
             type="button"
-            onClick={closeFile.close}
+            onClick={() => closeFile.close()}
             aria-label={t('sidebar.closeFile')}
             className="absolute top-2 right-2 p-1 rounded text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)] focus-visible:ring-2 focus-visible:ring-[var(--color-border-focus)] focus-visible:outline-none"
           >
@@ -340,6 +357,55 @@ export function Sidebar() {
                 {t('sidebar.exceptionKindCount', { count: analysis.topErrors.length })}
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 열린 파일 목록 (S-3) */}
+      {fileOrder.length > 0 && (
+        <div className="px-2 py-2 border-b border-[var(--color-border-default)]">
+          <p className="px-2 text-[11px] text-[var(--color-text-tertiary)] mb-1">
+            {t('tabs.openFilesLabel', { count: fileOrder.length })}
+          </p>
+          <div className="space-y-0.5">
+            {fileOrder.map((fid) => {
+              const f = files[fid];
+              if (!f) return null;
+              const isActive = fid === activeFileId;
+              const Icon = f.kind === 'live' ? Activity : FileSearch;
+              return (
+                <button
+                  key={fid}
+                  type="button"
+                  aria-current={isActive ? 'true' : undefined}
+                  onClick={() => {
+                    useLogStore.getState().setActiveFileId(fid);
+                    useExportStore.getState().setCurrentFileId(fid);
+                    if (f.kind === 'live') void activateLiveTab(fid);
+                  }}
+                  title={f.filePath ?? f.fileName}
+                  className={`relative w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] motion-safe:transition-colors ${
+                    isActive
+                      ? 'bg-[var(--color-bg-active)] text-[var(--color-text-primary)]'
+                      : 'text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-secondary)]'
+                  } ${f.reclaimed ? 'opacity-60' : ''}`}
+                >
+                  {isActive && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-0 top-1 bottom-1 w-[3px] bg-[var(--color-accent-primary)] rounded-r"
+                    />
+                  )}
+                  <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="flex-1 text-left truncate">{f.fileName}</span>
+                  {f.isParsing && (
+                    <span className="text-[10px] text-[var(--color-accent-primary)] flex-shrink-0">
+                      {Math.round(f.progress)}%
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

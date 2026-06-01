@@ -1,12 +1,17 @@
 // ExportView -- PDF/문서 내보내기 2탭 컨테이너
 // Props: 없음 (store 직접 구독)
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FileSearch, AlertCircle } from 'lucide-react';
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { useExportStore } from '../../store/exportStore';
-import { useLogStore } from '../../store/logStore';
+import { useExportStore, useActiveExportField } from '../../store/exportStore';
+import {
+  useActiveFileAnalysis,
+  useActiveFileName,
+  useActiveFileIsParsing,
+  useActiveFileProgress,
+  useActiveFileId,
+} from '../../store/activeFileSelectors';
 import { useLogFile } from '../../hooks/useLogFile';
 import { BasicPdfTab } from './BasicPdfTab';
 import { AiReportTab } from './AiReportTab';
@@ -18,60 +23,18 @@ const TAB_KEYS = ['basic', 'ai'] as const;
 /** ExportView 내부 전용 드롭존 -- loadFile 시 activeToolTab='export' 유지 */
 function ExportDropZone() {
   const { t } = useTranslation();
-  const { loadFile } = useLogFile();
+  const { loadFileAsTab } = useLogFile();
   const setIsFromHistory = useExportStore((s) => s.setIsFromHistory);
-  const [isDragging, setIsDragging] = useState(false);
+  // R13: 전역 드롭 리스너는 App(useGlobalFileDrop) 1곳에만 등록.
+  // ExportDropZone 은 클릭/버튼으로 파일 선택만 담당 (드롭은 새 탭 추가로 흡수, G-6).
+  const isDragging = false;
   const [error, setError] = useState<string | null>(null);
-  const unlistenRef = useRef<(() => void) | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    try {
-      getCurrentWebviewWindow()
-        .onDragDropEvent((event) => {
-          if (cancelled) return;
-          if (event.payload.type === 'over') {
-            setIsDragging(true);
-          } else if (event.payload.type === 'leave') {
-            setIsDragging(false);
-          } else if (event.payload.type === 'drop') {
-            setIsDragging(false);
-            const paths = event.payload.paths;
-            if (paths && paths.length > 0) {
-              setError(null);
-              setIsFromHistory(false);
-              loadFile(paths[0], { preserveProTab: true }).catch((e) =>
-                setError(String(e)),
-              );
-            }
-          }
-        })
-        .then((unlisten) => {
-          if (cancelled) {
-            unlisten();
-          } else {
-            unlistenRef.current = unlisten;
-          }
-        })
-        .catch(() => {
-          // Tauri 환경이 아닌 경우 무시
-        });
-    } catch {
-      // 무시
-    }
-
-    return () => {
-      cancelled = true;
-      unlistenRef.current?.();
-    };
-  }, [loadFile]);
 
   const handleOpen = async () => {
     setError(null);
     setIsFromHistory(false);
     try {
-      await loadFile(undefined, { preserveProTab: true });
+      await loadFileAsTab();
     } catch (e) {
       setError(String(e));
     }
@@ -144,15 +107,24 @@ function ExportDropZone() {
 
 export function ExportView() {
   const { t } = useTranslation();
-  const activeTab = useExportStore((s) => s.activeTab);
+  const activeTab = useActiveExportField('activeTab');
   const setActiveTab = useExportStore((s) => s.setActiveTab);
-  const title = useExportStore((s) => s.title);
+  const title = useActiveExportField('title');
   const setTitle = useExportStore((s) => s.setTitle);
-  const isFromHistory = useExportStore((s) => s.isFromHistory);
-  const analysis = useLogStore((s) => s.analysis);
-  const fileName = useLogStore((s) => s.fileName);
-  const isParsing = useLogStore((s) => s.isParsing);
-  const progress = useLogStore((s) => s.progress);
+  const isFromHistory = useActiveExportField('isFromHistory');
+  const analysis = useActiveFileAnalysis();
+  const fileName = useActiveFileName();
+  const isParsing = useActiveFileIsParsing();
+  const progress = useActiveFileProgress();
+  const activeFileId = useActiveFileId();
+
+  // ExportView 진입/탭 전환 시 currentFileId 를 활성 탭으로 동기화 + ExportState 보장
+  useEffect(() => {
+    if (activeFileId) {
+      useExportStore.getState().ensureFileState(activeFileId);
+      useExportStore.getState().setCurrentFileId(activeFileId);
+    }
+  }, [activeFileId]);
 
   // 컴포넌트 마운트 시 title이 빈 문자열이면 기본값 설정
   useEffect(() => {

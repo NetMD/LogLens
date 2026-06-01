@@ -7,7 +7,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLogStore } from "../../store/logStore";
-import { useUiStore } from "../../store/uiStore";
+import { useActiveFile, useActiveFileEntries } from "../../store/activeFileSelectors";
 import { EmptyLiveState } from "../shared/EmptyLiveState";
 import { FloatingActionButton } from "../shared/FloatingActionButton";
 import { RotationBanner } from "./RotationBanner";
@@ -26,13 +26,20 @@ const LEVEL_CLASS: Record<string, string> = {
 
 export function LiveLogView() {
   const { t } = useTranslation();
-  const entries = useLogStore((s) => s.entries);
-  const autoScrollPaused = useUiStore((s) => s.autoScrollPaused);
-  const setAutoScrollPaused = useUiStore((s) => s.setAutoScrollPaused);
-  const pendingNewLineCount = useUiStore((s) => s.pendingNewLineCount);
-  const resetPendingNewLineCount = useUiStore(
-    (s) => s.resetPendingNewLineCount
+  const entries = useActiveFileEntries();
+  const activeFileId = useLogStore((s) => s.activeFileId);
+  const autoScrollPaused = useActiveFile()?.autoScrollPaused ?? false;
+  const pendingNewLineCount = useLogStore((s) =>
+    s.activeFileId ? s.files[s.activeFileId]?.pendingNewLineCount ?? 0 : 0,
   );
+  const setAutoScrollPaused = (paused: boolean) => {
+    if (activeFileId)
+      useLogStore.getState().patchTabUi(activeFileId, { autoScrollPaused: paused });
+  };
+  const resetPendingNewLineCount = () => {
+    if (activeFileId)
+      useLogStore.getState().patchTabUi(activeFileId, { pendingNewLineCount: 0 });
+  };
 
   const parentRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -55,13 +62,14 @@ export function LiveLogView() {
       const distanceFromBottom =
         el.scrollHeight - el.scrollTop - el.clientHeight;
       const shouldPause = distanceFromBottom > AUTO_SCROLL_THRESHOLD_PX;
-      const { autoScrollPaused: cur, setAutoScrollPaused: setPaused } =
-        useUiStore.getState();
+      const { activeFileId: fid, files, patchTabUi } = useLogStore.getState();
+      if (!fid) return;
+      const cur = files[fid]?.autoScrollPaused ?? false;
       if (shouldPause !== cur) {
-        setPaused(shouldPause);
-        if (!shouldPause) {
-          useUiStore.getState().resetPendingNewLineCount();
-        }
+        patchTabUi(fid, {
+          autoScrollPaused: shouldPause,
+          ...(shouldPause ? {} : { pendingNewLineCount: 0 }),
+        });
       }
     });
   }, []);

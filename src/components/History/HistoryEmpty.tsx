@@ -6,11 +6,10 @@ import { useUiStore } from '../../store/uiStore';
 
 export function HistoryEmpty() {
   const { t } = useTranslation();
-  const requestModeChange = useUiStore((s) => s.requestModeChange);
   const setActiveToolTab = useUiStore((s) => s.setActiveToolTab);
 
   function handleGoToFile() {
-    requestModeChange({ appMode: 'file', mainView: 'stacktrace' });
+    // 도구 탭 해제 → 활성 탭 또는 드롭존으로 복귀 (다중 탭 모델)
     setActiveToolTab(null);
   }
 

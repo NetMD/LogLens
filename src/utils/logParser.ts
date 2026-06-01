@@ -76,8 +76,11 @@ const FRAMEWORK_PREFIXES = [
 
 let entryCounter = 0;
 
-function makeId(timestamp: string): string {
-  return `${timestamp.replace(/[^0-9]/g, "")}-${(++entryCounter).toString(36)}`;
+// 동시 파싱(다중 탭) 시 id 전역 유니크 보장을 위한 fileId salt (§3.4).
+// 빈 문자열이면 기존 동작과 동일.
+function makeId(timestamp: string, fileIdSalt = ""): string {
+  const salt = fileIdSalt ? `${fileIdSalt.slice(0, 8)}-` : "";
+  return `${salt}${timestamp.replace(/[^0-9]/g, "")}-${(++entryCounter).toString(36)}`;
 }
 
 function isUserCode(className: string): boolean {
@@ -112,9 +115,9 @@ function parseStackFrame(line: string): StackFrame | null {
   return null;
 }
 
-function finalizeEntry(partial: Partial<LogEntry>): LogEntry {
+function finalizeEntry(partial: Partial<LogEntry>, fileIdSalt = ""): LogEntry {
   return {
-    id: makeId(partial.timestamp ?? ""),
+    id: makeId(partial.timestamp ?? "", fileIdSalt),
     timestamp: partial.timestamp ?? "",
     level: partial.level ?? "INFO",
     pid: partial.pid ?? 0,
@@ -134,6 +137,13 @@ export interface ParseBatchResult {
   parseFailCount: number;
 }
 
+export interface ParseBatchOptions {
+  /** A안 Raw 보기 — 정규화된 모든 라인을 순서대로 수집 (§5.1). Raw 보기 연 탭만 전달. */
+  rawSink?: (line: string) => void;
+  /** 동시 파싱 시 id 전역 유니크용 fileId salt (§3.4) */
+  fileIdSalt?: string;
+}
+
 /**
  * 500라인 배치를 파싱하여 LogEntry[]를 반환한다.
  * 배치 경계에서 잘린 멀티라인 엔트리는 pending으로 반환하여
@@ -141,14 +151,19 @@ export interface ParseBatchResult {
  */
 export function parseBatch(
   lines: string[],
-  pending: Partial<LogEntry> | null
+  pending: Partial<LogEntry> | null,
+  options?: ParseBatchOptions
 ): ParseBatchResult {
   const entries: LogEntry[] = [];
   let current = pending;
   let parseFailCount = 0;
+  const rawSink = options?.rawSink;
+  const salt = options?.fileIdSalt ?? "";
 
   for (let line of lines) {
     line = line.replace(/\r$/, ""); // CRLF → LF 정규화
+    // ★ A안: 고아·표준·멀티라인 전부 순서대로 수집 (빈 라인 스킵 전 — 원본 보존)
+    rawSink?.(line);
     if (!line.trim()) continue; // 빈 라인 스킵
     if (LOGGING_FRAMEWORK_PATTERN.test(line)) continue; // 로깅 프레임워크 내부 메시지 무시
     if (SPRING_BANNER_PATTERN.test(line)) continue; // Spring Boot 배너 (ASCII 아트) 무시
@@ -158,7 +173,7 @@ export function parseBatch(
     if (match) {
       // 새 로그 라인 시작 — pending flush
       if (current?.timestamp) {
-        entries.push(finalizeEntry(current));
+        entries.push(finalizeEntry(current, salt));
       }
       current = {
         timestamp: match[1].replace("T", " ").replace(",", "."),
@@ -227,9 +242,12 @@ export function parseBatch(
 }
 
 /** 마지막 pending 엔트리를 flush한다 (파싱 완료 시 호출) */
-export function flushPending(pending: Partial<LogEntry> | null): LogEntry[] {
+export function flushPending(
+  pending: Partial<LogEntry> | null,
+  fileIdSalt = ""
+): LogEntry[] {
   if (!pending?.timestamp) return [];
-  return [finalizeEntry(pending)];
+  return [finalizeEntry(pending, fileIdSalt)];
 }
 
 /** 파서 카운터 리셋 (새 파일 로딩 시 호출) */

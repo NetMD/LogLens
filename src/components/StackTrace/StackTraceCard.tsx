@@ -5,7 +5,7 @@ import type { LogEntry } from "../../utils/logParser";
 import type { SingleDiagnosisInput } from "../../types/diagnosis";
 import { StackTraceLine } from "./StackTraceLine";
 import { useSettingsStore } from "../../store/settingsStore";
-import { useUiStore } from "../../store/uiStore";
+import { useUiStore, useActiveDiagnosisViewOpen } from "../../store/uiStore";
 import { Tooltip } from "../shared/Tooltip";
 
 const LEVEL_STYLES: Record<string, string> = {
@@ -39,7 +39,7 @@ export function StackTraceCard({ entry, entries }: Props) {
 
   const aiProvider = useSettingsStore((s) => s.aiProvider);
   const openDiagnosis = useUiStore((s) => s.openDiagnosis);
-  const isDiagnosisViewOpen = useUiStore((s) => s.isDiagnosisViewOpen);
+  const isDiagnosisViewOpen = useActiveDiagnosisViewOpen();
 
   const hasStacktrace = entry.stacktrace.length > 0 || entry.exceptionClass;
   const borderStyle = LEVEL_STYLES[entry.level] ?? LEVEL_STYLES.INFO;

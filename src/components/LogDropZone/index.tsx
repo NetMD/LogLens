@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FileSearch, Radio, type LucideIcon } from "lucide-react";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useLogFile } from "../../hooks/useLogFile";
 import { useLogWatchActions } from "../../hooks/useLogWatch";
-import { useLogStore } from "../../store/logStore";
+import {
+  useActiveFileIsParsing,
+  useActiveFileProgress,
+  useActiveFileName,
+  useActiveFileParseError,
+} from "../../store/activeFileSelectors";
 import { ProgressBar } from "./ProgressBar";
 
 export type LogDropZoneVariant = "file" | "live";
@@ -64,21 +68,16 @@ interface Props {
 
 export function LogDropZone({ variant = "file" }: Props) {
   const { t } = useTranslation();
-  const { loadFile } = useLogFile();
-  const { start: startWatch } = useLogWatchActions();
-  const isParsing = useLogStore((s) => s.isParsing);
-  const progress = useLogStore((s) => s.progress);
-  const fileName = useLogStore((s) => s.fileName);
-  const parseError = useLogStore((s) => s.parseError);
-  const [isDragging, setIsDragging] = useState(false);
+  const { loadFileAsTab } = useLogFile();
+  const { startWatchAsTab } = useLogWatchActions();
+  const isParsing = useActiveFileIsParsing();
+  const progress = useActiveFileProgress();
+  const fileName = useActiveFileName();
+  const parseError = useActiveFileParseError();
+  // R13: 전역 드롭 리스너는 App(useGlobalFileDrop) 1곳에만 등록 (G-6).
+  // LogDropZone 은 시각 UI + 클릭/버튼 파일 선택만 담당 (드롭 리스너 제거).
+  const isDragging = false;
   const [error, setError] = useState<string | null>(null);
-  const unlistenRef = useRef<(() => void) | null>(null);
-
-  // 드롭 핸들러 내부에서 최신 variant 참조 (클로저 stale 방지)
-  const variantRef = useRef<LogDropZoneVariant>(variant);
-  useEffect(() => {
-    variantRef.current = variant;
-  }, [variant]);
 
   // variant 변경 시 에러 상태 초기화
   useEffect(() => {
@@ -87,59 +86,13 @@ export function LogDropZone({ variant = "file" }: Props) {
 
   const config = useMemo(() => VARIANT_CONFIG[variant], [variant]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    // Tauri 드롭 이벤트 등록 (절대 경로 확보)
-    try {
-      getCurrentWebviewWindow()
-        .onDragDropEvent((event) => {
-          if (cancelled) return;
-          if (event.payload.type === "over") {
-            setIsDragging(true);
-          } else if (event.payload.type === "leave") {
-            setIsDragging(false);
-          } else if (event.payload.type === "drop") {
-            setIsDragging(false);
-            const paths = event.payload.paths;
-            if (paths && paths.length > 0) {
-              setError(null);
-              const currentVariant = variantRef.current;
-              if (currentVariant === "live") {
-                startWatch(paths[0]).catch((e) => setError(String(e)));
-              } else {
-                loadFile(paths[0]).catch((e) => setError(String(e)));
-              }
-            }
-          }
-        })
-        .then((unlisten) => {
-          if (cancelled) {
-            unlisten();
-          } else {
-            unlistenRef.current = unlisten;
-          }
-        })
-        .catch(() => {
-          // Tauri 환경이 아닌 경우 무시
-        });
-    } catch {
-      // Tauri 환경이 아닌 경우 무시
-    }
-
-    return () => {
-      cancelled = true;
-      unlistenRef.current?.();
-    };
-  }, [loadFile, startWatch]);
-
   const handleOpen = async () => {
     setError(null);
     try {
       if (variant === "live") {
-        await startWatch();
+        await startWatchAsTab();
       } else {
-        await loadFile();
+        await loadFileAsTab();
       }
     } catch (e) {
       setError(String(e));
@@ -216,6 +169,13 @@ export function LogDropZone({ variant = "file" }: Props) {
             >
               {t(config.buttonLabelKey)}
             </button>
+          )}
+
+          {/* 다중 탭 안내 (UX §3-4) */}
+          {!isDragging && (
+            <p className="text-xs text-[var(--color-text-disabled)]">
+              {t('tabs.emptyHint')}
+            </p>
           )}
         </div>
       </div>

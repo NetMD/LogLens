@@ -4,9 +4,14 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { FileDown } from 'lucide-react';
-import { useExportStore } from '../../store/exportStore';
+import { useExportStore, useActiveExportField } from '../../store/exportStore';
 import type { IncludeSections, StacktraceLimit } from '../../store/exportStore';
-import { useLogStore } from '../../store/logStore';
+import {
+  useActiveFileAnalysis,
+  useActiveFileEntries,
+  useActiveFileName,
+  useActiveFileSize,
+} from '../../store/activeFileSelectors';
 import { PrintableReport } from './PrintableReport';
 
 // 포함 항목 키 -> i18n key 매핑 (라벨은 t() 로 해석)
@@ -41,19 +46,23 @@ function sanitizeSaveFileName(name: string): string {
 
 export function BasicPdfTab() {
   const { t } = useTranslation();
-  const title = useExportStore((s) => s.title);
-  const saveFileName = useExportStore((s) => s.saveFileName);
-  const includeSections = useExportStore((s) => s.includeSections);
-  const stacktraceLimit = useExportStore((s) => s.stacktraceLimit);
+  const title = useActiveExportField('title');
+  const saveFileName = useActiveExportField('saveFileName');
+  const includeSections = useActiveExportField('includeSections');
+  const stacktraceLimit = useActiveExportField('stacktraceLimit');
   const setTitle = useExportStore((s) => s.setTitle);
   const setSaveFileName = useExportStore((s) => s.setSaveFileName);
-  const toggleSection = useExportStore((s) => s.toggleSection);
   const setStacktraceLimit = useExportStore((s) => s.setStacktraceLimit);
+  // toggleSection 은 (fileId, key) 시그니처 → currentFileId 위임 래퍼
+  const toggleSection = (key: keyof IncludeSections) => {
+    const fid = useExportStore.getState().currentFileId;
+    if (fid) useExportStore.getState().toggleSection(fid, key);
+  };
 
-  const analysis = useLogStore((s) => s.analysis);
-  const entries = useLogStore((s) => s.entries);
-  const fileName = useLogStore((s) => s.fileName);
-  const fileSize = useLogStore((s) => s.fileSize);
+  const analysis = useActiveFileAnalysis();
+  const entries = useActiveFileEntries();
+  const fileName = useActiveFileName();
+  const fileSize = useActiveFileSize();
 
   // 파일 전환 시 제목 + 저장파일명 자동 세팅 (fileName 변경에만 반응)
   useEffect(() => {

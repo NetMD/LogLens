@@ -2,7 +2,7 @@
 // logStore / exportStore / settingsStore 상태를 조합하여 AI 호출 → 문서 생성까지 파이프라인 실행
 
 import { useSettingsStore } from '../../store/settingsStore';
-import { useExportStore } from '../../store/exportStore';
+import { useExportStore, getActiveExport } from '../../store/exportStore';
 import { getAiProvider } from './providers';
 import { buildPrompt } from './promptTemplates';
 import { buildAnalysisData } from './dataBuilder';
@@ -34,6 +34,7 @@ export async function generateAiReport(
   signal: AbortSignal,
 ): Promise<AiReportResult> {
   const store = useExportStore.getState();
+  const exp = getActiveExport(); // 활성 탭 ExportState 스냅샷 (필드 읽기용)
   const settings = useSettingsStore.getState();
 
   // 1. 사전 검증
@@ -54,8 +55,8 @@ export async function generateAiReport(
   // 2. 데이터 수집 (collecting)
   store.setGenerationStatus('collecting');
   const payload = await buildAnalysisData({
-    projectRoot: store.projectRoot,
-    language: store.outputLanguage,
+    projectRoot: exp.projectRoot,
+    language: exp.outputLanguage,
     abortSignal: signal,
   });
   if (abortCheck()) throw new AiApiError('ABORTED', '');
@@ -63,15 +64,15 @@ export async function generateAiReport(
   // 3. 소스 분석 단계 (analyzing-source)
   //    dataBuilder 내부에서 이미 resolveSources가 실행되었으므로
   //    여기서는 시각적 단계 구분용으로만 상태를 전이한다.
-  if (store.projectRoot !== null && payload.sourceCode !== undefined) {
+  if (exp.projectRoot !== null && payload.sourceCode !== undefined) {
     store.setGenerationStatus('analyzing-source');
   }
 
   // 4. Word 템플릿 파싱 (inputMode=='upload')
   let wordHint: WordStructureHint | undefined;
-  if (store.inputMode === 'upload' && store.uploadedFile) {
+  if (exp.inputMode === 'upload' && exp.uploadedFile) {
     try {
-      wordHint = await extractStructure(store.uploadedFile.arrayBuffer);
+      wordHint = await extractStructure(exp.uploadedFile.arrayBuffer);
     } catch (e) {
       // extractStructure는 이미 AiApiError를 throw하므로 그대로 전파
       if (e instanceof AiApiError) throw e;
@@ -86,8 +87,8 @@ export async function generateAiReport(
   // 5. AI 호출 (calling-ai) — 스트리밍
   store.setGenerationStatus('calling-ai');
   store.resetStreamingBuffer();
-  const { systemPrompt, userPrompt } = buildPrompt(store.presetType, payload, {
-    language: store.outputLanguage,
+  const { systemPrompt, userPrompt } = buildPrompt(exp.presetType, payload, {
+    language: exp.outputLanguage,
     wordStructureHint: wordHint,
   });
   const provider = getAiProvider(settings.aiProvider);
@@ -123,7 +124,8 @@ export async function generateAiReport(
     // 스트리밍 활성화 시에만 onDelta 전달. 비활성화 시 provider 는 non-stream JSON 경로 사용.
     ENABLE_STREAMING
       ? (delta) => {
-          useExportStore.getState().appendStreamingBuffer(delta);
+          const fid = useExportStore.getState().currentFileId;
+          if (fid) useExportStore.getState().appendStreamingBuffer(fid, delta);
         }
       : undefined,
   );
@@ -151,11 +153,11 @@ export async function generateAiReport(
   store.setGenerationStatus('generating-doc');
   useExportStore.getState().setGeneratedContent(response.content);
 
-  if (useExportStore.getState().outputFormat === 'docx') {
+  if (getActiveExport().outputFormat === 'docx') {
     try {
       const blob = await markdownToDocx(
         response.content,
-        useExportStore.getState().title || payload.summary.fileName,
+        getActiveExport().title || payload.summary.fileName,
       );
       useExportStore.getState().setGeneratedBlob(blob);
     } catch (e) {

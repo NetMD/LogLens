@@ -1,8 +1,8 @@
 import { Sparkles, FileSearch, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useLogStore } from '../../store/logStore';
+import { useActiveFileEntries, useActiveFileAnalysis } from '../../store/activeFileSelectors';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useUiStore } from '../../store/uiStore';
+import { useUiStore, setActiveMainView } from '../../store/uiStore';
 import type { ExceptionDiagnosisInput } from '../../types/diagnosis';
 import type { LogEntry } from '../../utils/logParser';
 import { loadDiagnosisHistories } from '../../hooks/useDiagnosisHistory';
@@ -16,8 +16,8 @@ import type { DiagnosisHistory } from '../../types/diagnosis';
  */
 export function DiagnosisLanding() {
   const { t } = useTranslation();
-  const entries = useLogStore((s) => s.entries);
-  const analysis = useLogStore((s) => s.analysis);
+  const entries = useActiveFileEntries();
+  const analysis = useActiveFileAnalysis();
   const aiProvider = useSettingsStore((s) => s.aiProvider);
   const openDiagnosis = useUiStore((s) => s.openDiagnosis);
 
@@ -103,7 +103,7 @@ export function DiagnosisLanding() {
           <button
             onClick={() => {
               useUiStore.getState().setActiveToolTab(null);
-              useUiStore.getState().requestModeChange({ appMode: 'file', mainView: 'stacktrace' });
+              setActiveMainView('stacktrace');
             }}
             className="mt-6 inline-flex items-center gap-2 px-4 py-2 text-sm bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-[var(--color-border-default)] rounded-lg hover:bg-[var(--color-bg-hover)] transition-colors"
           >

@@ -7,9 +7,9 @@ import { AlertTriangle, Loader2, RotateCw, StopCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useLogWatchActions } from "../../hooks/useLogWatch";
-import { useLogStore } from "../../store/logStore";
-import { useUiStore } from "../../store/uiStore";
+import { useLogWatchActions, activateLiveTab } from "../../hooks/useLogWatch";
+import { useActiveFile } from "../../store/activeFileSelectors";
+import { useAppMode } from "../../store/uiStore";
 import { StatusDot } from "../shared/StatusDot";
 
 // starting 상태가 50ms 이내에 끝나면 스피너 깜빡임 방지
@@ -17,10 +17,11 @@ const SPINNER_DELAY_MS = 50;
 
 export function WatchStatusBadge() {
   const { t } = useTranslation();
-  const appMode = useUiStore((s) => s.appMode);
-  const watchMode = useLogStore((s) => s.watchMode);
-  const watchPath = useLogStore((s) => s.watchPath);
-  const { start, stop } = useLogWatchActions();
+  const appMode = useAppMode();
+  const activeFile = useActiveFile();
+  const watchMode = activeFile?.watchMode ?? "idle";
+  const fileId = activeFile?.fileId ?? null;
+  const { stop } = useLogWatchActions();
 
   const [showStartingSpinner, setShowStartingSpinner] = useState(false);
   const spinnerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,11 +53,8 @@ export function WatchStatusBadge() {
     if (watchMode === "watching") {
       void stop();
     } else if (watchMode === "idle" || watchMode === "error") {
-      if (watchPath) {
-        void start(watchPath);
-      } else {
-        void start();
-      }
+      // 활성 live 탭 재활성화 (catch-up)
+      if (fileId) void activateLiveTab(fileId);
     }
     // starting 은 클릭 무시
   };

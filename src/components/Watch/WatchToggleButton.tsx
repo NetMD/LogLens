@@ -9,7 +9,7 @@ import { FolderOpen, Loader2, RotateCw, StopCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLogWatchActions } from "../../hooks/useLogWatch";
-import { useLogStore } from "../../store/logStore";
+import { useActiveFile } from "../../store/activeFileSelectors";
 import { StatusDot } from "../shared/StatusDot";
 
 // starting 상태가 50ms 이내에 끝나면 스피너 깜빡임 방지
@@ -17,9 +17,9 @@ const SPINNER_DELAY_MS = 50;
 
 export function WatchToggleButton() {
   const { t } = useTranslation();
-  const watchMode = useLogStore((s) => s.watchMode);
+  const watchMode = useActiveFile()?.watchMode ?? "idle";
   // 액션 전용 훅 사용 (이벤트 구독은 MainLayout 의 controller 에서 1회만)
-  const { start, stop } = useLogWatchActions();
+  const { startWatchAsTab, stop } = useLogWatchActions();
 
   const [showStartingSpinner, setShowStartingSpinner] = useState(false);
   const spinnerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -46,14 +46,10 @@ export function WatchToggleButton() {
   }, [watchMode]);
 
   const handleClick = () => {
-    if (watchMode === "idle") {
-      void start();
+    if (watchMode === "idle" || watchMode === "error") {
+      void startWatchAsTab();
     } else if (watchMode === "watching") {
       void stop();
-    } else if (watchMode === "error") {
-      // 재시도
-      const lastPath = useLogStore.getState().watchPath;
-      void start(lastPath ?? undefined);
     }
     // starting 상태에서는 클릭 무시
   };

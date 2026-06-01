@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { Sparkles, Settings, History, Download } from 'lucide-react';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useUiStore } from '../../store/uiStore';
-import { useLogStore } from '../../store/logStore';
+import { getActiveFile, useActiveFileName } from '../../store/activeFileSelectors';
 import type { AiProvider } from '../../types/settings';
 import {
   AI_PROVIDERS,
@@ -16,7 +16,7 @@ import {
   isLocalProvider,
 } from '../../types/settings';
 import type { PresetType } from '../../store/exportStore';
-import { useExportStore } from '../../store/exportStore';
+import { useExportStore, useActiveExportField } from '../../store/exportStore';
 import { ProjectRootPicker } from './ProjectRootPicker';
 import { SourceFileConfirmDialog } from './SourceFileConfirmDialog';
 import {
@@ -84,8 +84,8 @@ export function MultiAiComparison() {
   const localLlmModel = useSettingsStore((s) => s.localLlmModel);
   const localLlmEndpoint = useSettingsStore((s) => s.localLlmEndpoint);
   const openSettingsModal = useUiStore((s) => s.openSettingsModal);
-  const fileName = useLogStore((s) => s.fileName);
-  const projectRoot = useExportStore((s) => s.projectRoot);
+  const fileName = useActiveFileName();
+  const projectRoot = useActiveExportField('projectRoot');
   const setProjectRoot = useExportStore((s) => s.setProjectRoot);
 
   // 히스토리
@@ -159,7 +159,7 @@ export function MultiAiComparison() {
       setSourceConfirmOpen(true);
       try {
         const { previewSourceFiles } = await import('../../services/ai/sourceCodeResolver');
-        const { entries } = useLogStore.getState();
+        const entries = getActiveFile()?.entries ?? [];
         const errorEntries = entries
           .filter((e) => e.level === 'ERROR' || e.level === 'FATAL')
           .slice(0, 5);
@@ -253,8 +253,8 @@ export function MultiAiComparison() {
         const entry: AiReportHistoryEntry = {
           id: crypto.randomUUID(),
           generatedAt: new Date().toISOString(),
-          sourceFileName: useLogStore.getState().fileName ?? '(unknown)',
-          sourceFileSize: useLogStore.getState().fileSize ?? 0,
+          sourceFileName: getActiveFile()?.fileName ?? '(unknown)',
+          sourceFileSize: getActiveFile()?.fileSize ?? 0,
           presetType,
           inputMode: 'preset',
           uploadedFileName: null,

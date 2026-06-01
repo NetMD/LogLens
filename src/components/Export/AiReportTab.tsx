@@ -18,11 +18,15 @@ import {
   History,
   Trash2,
 } from 'lucide-react';
-import { useExportStore, isGenerating } from '../../store/exportStore';
+import { useExportStore, isGenerating, useActiveExportField, getActiveExport } from '../../store/exportStore';
 import type { PresetType } from '../../store/exportStore';
+import {
+  useActiveFileName,
+  useActiveFileSize,
+  getActiveFile,
+} from '../../store/activeFileSelectors';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useUiStore } from '../../store/uiStore';
-import { useLogStore } from '../../store/logStore';
 import { useAiReportHistoryStore } from '../../store/aiReportHistoryStore';
 import { useAiReportHistory } from '../../hooks/useAiReportHistory';
 import { AiGenerationStatus } from './AiGenerationStatus';
@@ -134,26 +138,26 @@ export function AiReportTab() {
   // 현재 활성 프로바이더의 키 (생성 버튼 활성화 판단용)
   const activeApiKey = aiProvider !== null ? (aiApiKeys[aiProvider] ?? '') : '';
 
-  const generationStatus = useExportStore((s) => s.generationStatus);
-  const generationError = useExportStore((s) => s.generationError);
-  const outputFormat = useExportStore((s) => s.outputFormat);
-  const presetType = useExportStore((s) => s.presetType);
-  const inputMode = useExportStore((s) => s.inputMode);
-  const uploadedFile = useExportStore((s) => s.uploadedFile);
+  const generationStatus = useActiveExportField('generationStatus');
+  const generationError = useActiveExportField('generationError');
+  const outputFormat = useActiveExportField('outputFormat');
+  const presetType = useActiveExportField('presetType');
+  const inputMode = useActiveExportField('inputMode');
+  const uploadedFile = useActiveExportField('uploadedFile');
   const setPresetType = useExportStore((s) => s.setPresetType);
   // 8차 신규 구독
-  const outputLanguage = useExportStore((s) => s.outputLanguage);
-  const projectRoot = useExportStore((s) => s.projectRoot);
+  const outputLanguage = useActiveExportField('outputLanguage');
+  const projectRoot = useActiveExportField('projectRoot');
   const setOutputLanguage = useExportStore((s) => s.setOutputLanguage);
   const setProjectRoot = useExportStore((s) => s.setProjectRoot);
-  const generatedContent = useExportStore((s) => s.generatedContent);
+  const generatedContent = useActiveExportField('generatedContent');
   // AI 리포트는 저장 파일명과 PDF 내부 제목을 프리셋+날짜로 일관 생성하므로
   // exportStore.title (기본 PDF 전용) 은 구독하지 않음.
   // QA 재작업: 히스토리 복원 모드 여부 (소스코드 분석 비활성화 용)
-  const isFromHistory = useExportStore((s) => s.isFromHistory);
+  const isFromHistory = useActiveExportField('isFromHistory');
 
-  const fileName = useLogStore((s) => s.fileName);
-  const fileSize = useLogStore((s) => s.fileSize);
+  const fileName = useActiveFileName();
+  const fileSize = useActiveFileSize();
 
   // Step 4: AI 리포트 히스토리
   const aiReportHistoryEntries = useAiReportHistoryStore((s) => s.entries);
@@ -377,7 +381,7 @@ export function AiReportTab() {
       try {
         const { previewSourceFiles } = await import('../../services/ai/sourceCodeResolver');
         // 스택트레이스 추출 (dataBuilder 와 동일 로직)
-        const { entries } = useLogStore.getState();
+        const entries = getActiveFile()?.entries ?? [];
         const errorEntries = entries
           .filter((e) => e.level === 'ERROR' || e.level === 'FATAL')
           .slice(0, 5);
@@ -411,7 +415,8 @@ export function AiReportTab() {
     setPendingWarning(null);
     abortRef.current = new AbortController();
     const store = useExportStore.getState();
-    store.resetGeneration();
+    const fid = store.currentFileId;
+    if (fid) store.resetGeneration(fid);
     // resetGeneration 내부에서 streamingBuffer도 초기화되지만 명시적으로 한 번 더 호출
     store.resetStreamingBuffer();
     // 생성 시작 시 이전 메타 리셋
@@ -440,17 +445,19 @@ export function AiReportTab() {
       // Step 4: 히스토리 자동 저장 (fire-and-forget)
       // - usedProvider 가 null 이면 저장 의미 없음 → 스킵
       // - 히스토리 복원 모드(isFromHistory=true) 에서는 재저장 방지
-      if (usedProvider !== null && !useExportStore.getState().isFromHistory) {
+      const exp = getActiveExport();
+      const activeF = getActiveFile();
+      if (usedProvider !== null && !exp.isFromHistory) {
         const entry: AiReportHistoryEntry = {
           id: crypto.randomUUID(),
           generatedAt: new Date().toISOString(),
-          sourceFileName: useLogStore.getState().fileName ?? '(unknown)',
-          sourceFileSize: useLogStore.getState().fileSize ?? 0,
-          presetType: useExportStore.getState().presetType,
-          inputMode: useExportStore.getState().inputMode,
-          uploadedFileName: useExportStore.getState().uploadedFile?.name ?? null,
-          outputLanguage: useExportStore.getState().outputLanguage,
-          outputFormat: useExportStore.getState().outputFormat,
+          sourceFileName: activeF?.fileName ?? '(unknown)',
+          sourceFileSize: activeF?.fileSize ?? 0,
+          presetType: exp.presetType,
+          inputMode: exp.inputMode,
+          uploadedFileName: exp.uploadedFile?.name ?? null,
+          outputLanguage: exp.outputLanguage,
+          outputFormat: exp.outputFormat,
           provider: usedProvider,
           model: usedModel,
           tokensUsed: result.tokensUsed,
@@ -487,16 +494,19 @@ export function AiReportTab() {
 
   function handleCancel(): void {
     abortRef.current?.abort();
-    useExportStore.getState().resetGeneration();
+    const fid = useExportStore.getState().currentFileId;
+    if (fid) useExportStore.getState().resetGeneration(fid);
   }
 
   function handleRetry(): void {
-    useExportStore.getState().resetGeneration();
+    const fid = useExportStore.getState().currentFileId;
+    if (fid) useExportStore.getState().resetGeneration(fid);
     void handleGenerate();
   }
 
   function handleReset(): void {
-    useExportStore.getState().resetGeneration();
+    const fid = useExportStore.getState().currentFileId;
+    if (fid) useExportStore.getState().resetGeneration(fid);
   }
 
   /** Step 4: 히스토리 항목 복원 — done 상태로 점프해서 재다운로드 가능하게 한다.
@@ -652,7 +662,7 @@ export function AiReportTab() {
       try {
         const { save } = await import('@tauri-apps/plugin-dialog');
         const { writeFile } = await import('@tauri-apps/plugin-fs');
-        const blob = useExportStore.getState().generatedBlob;
+        const blob = getActiveExport().generatedBlob;
 
         const path = await save({
           defaultPath: `${fileNameBase}.docx`,
