@@ -1,7 +1,7 @@
 # Changelog
 
 이 프로젝트의 주요 변경 사항을 기록합니다.
-형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)를 따르며,
+형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 따르며,
 [유의적 버전(SemVer)](https://semver.org/lang/ko/)을 준수합니다.
 
 ## [1.1.0] - 2026-06-01
