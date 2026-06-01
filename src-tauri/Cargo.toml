@@ -1,6 +1,6 @@
 [package]
 name = "loglens"
-version = "1.0.1"
+version = "1.1.0"
 description = "Spring log analysis desktop app"
 authors = ["LogLens"]
 edition = "2021"
